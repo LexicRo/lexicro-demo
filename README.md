@@ -38,6 +38,25 @@ the same Hetzner host, behind the same nginx.
    terminate TLS and proxy to it. It is never reachable directly from
    outside the host.
 
+> ## nginx MUST set `X-Real-IP`, or the per-IP throttle is forgeable
+>
+> The nginx vhost in front of this demo **must** contain:
+> ```nginx
+> proxy_set_header X-Real-IP $remote_addr;
+> ```
+>
+> The app only trusts an inbound `X-Real-IP` header when the immediate TCP
+> peer is loopback or private. Behind Docker on this host, that peer is
+> *always* nginx — so that check is always satisfied, and the app has no
+> way to tell from inside the container whether nginx is actually
+> overwriting the header or just forwarding whatever the visitor sent.
+> Correctness of the per-IP throttle depends entirely on this one nginx
+> line existing.
+>
+> **Without it, any visitor can set their own `X-Real-IP` and bypass the
+> per-IP throttle entirely**, leaving only the loose, whole-site
+> `global_day` cap between one script and the demo key's daily budget.
+
 To redeploy after a change, run `./deploy.sh` again on the host.
 
 After the first build, confirm the image carries no secret:

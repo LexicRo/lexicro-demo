@@ -108,3 +108,20 @@ async def test_info_reads_model_version():
 
     async with client_returning(handler) as c:
         assert (await info(c, SETTINGS))["model_version"] == "phase2-baseline-0.1"
+
+
+async def test_info_sends_the_api_key_header():
+    """I3: without this, /healthz lands in the API's anonymous 10/day-per-IP
+    bucket instead of the demo key's own budget -- UptimeRobot at 5-minute
+    intervals (288/day) means /healthz reports degraded from the first hour
+    of every day, and the request is logged upstream with key_hash=NULL."""
+    seen = {}
+
+    def handler(request):
+        seen["headers"] = request.headers
+        return httpx.Response(200, json={"model_version": "v1"})
+
+    async with client_returning(handler) as c:
+        await info(c, SETTINGS)
+
+    assert seen["headers"]["X-API-Key"] == SETTINGS.api_key

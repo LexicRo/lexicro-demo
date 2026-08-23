@@ -6,12 +6,23 @@ services:
       # is no reason to weaken it for the demo.
       - "127.0.0.1:8002:8002"
     environment:
-      LEXICRO_API_BASE: ${LEXICRO_API_BASE}
+      # ":-" (not bare "-") so a var that is SET but EMPTY also falls back to
+      # the default, not just an unset one. os.environ.get's own default in
+      # app/config.py only fires on a missing key -- an empty string passed
+      # through from here counts as "set" and would silently become the
+      # upstream base URL, 502-ing every analysis.
+      LEXICRO_API_BASE: ${LEXICRO_API_BASE:-https://api.lexicro.com}
       LEXICRO_DEMO_KEY: ${LEXICRO_DEMO_KEY}
       SESSION_SECRET: ${SESSION_SECRET}
       TRUST_PROXY: "true"
       COOKIE_SECURE: ${COOKIE_SECURE:-true}
     restart: unless-stopped
+    # Backstop for C1: the throttle's own fix stops the leak at the source,
+    # but this caps the blast radius if a leak is ever reintroduced. Without
+    # it, an OOM here is resolved by the kernel OOM killer picking the
+    # largest process on the HOST -- which is the production API or its
+    # Postgres, not this container.
+    mem_limit: 256m
     logging:
       # Docker's json-file driver keeps logs forever and ends in a full disk,
       # which would take the API down with it. OPERATIONS.md section 2.

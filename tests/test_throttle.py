@@ -1,5 +1,5 @@
 import pytest
-from app.throttle import Throttle, GLOBAL_DAILY
+from app.throttle import Throttle, GLOBAL_DAILY, GLOBAL_WINDOW_S
 
 
 class FakeClock:
@@ -105,3 +105,49 @@ def test_a_refusal_does_not_consume_budget(clock):
         assert t.try_acquire("s1", "1.1.1.1") == "session_hour"
     clock.advance(3601)
     assert t.try_acquire("s1", "1.1.1.1") is None
+
+
+def test_a_refused_request_inserts_no_keys(clock):
+    """C1: reading a key must never create one. A defaultdict-backed _hits
+    inserts an empty deque merely by being indexed with [], which happens on
+    every refusal too -- so a flood of refused requests from unique
+    session/IP pairs would retain a key each, forever, and OOM the host.
+    A single request that is refused outright (global cap already spent)
+    must leave the dict exactly as empty as it started."""
+    t = Throttle(clock)
+    # Exhaust the global cap first so a *fresh* session/IP pair is refused
+    # on its very first try_acquire call -- the case that must add nothing.
+    for i in range(GLOBAL_DAILY):
+        t.try_acquire(f"warm-{i}", f"10.0.{i // 256}.{i % 256}")
+    assert t.try_acquire("brand-new-session", "123.45.67.89") == "global_day"
+    assert ("session_hour", "brand-new-session") not in t._hits
+    assert ("session_day", "brand-new-session") not in t._hits
+    assert ("ip_burst", "123.45.67.89") not in t._hits
+    assert ("ip_hour", "123.45.67.89") not in t._hits
+
+
+def test_swept_dict_shrinks_back_after_windows_expire(clock):
+    """C1: even accepted requests must not accumulate keys forever for
+    visitors who never return. Every SWEEP_EVERY-th try_acquire call must
+    walk the dict and drop any window that has fully aged out."""
+    from app.throttle import SWEEP_EVERY
+
+    t = Throttle(clock)
+    # One-off visitors: each session/IP pair is used exactly once, so none
+    # of these keys is ever touched (and so never pruned) again.
+    for i in range(SWEEP_EVERY - 1):
+        t.try_acquire(f"once-{i}", f"172.16.{i // 256}.{i % 256}")
+    assert len(t._hits) > 0
+
+    # Age every window out, then let the SWEEP_EVERY-th call trigger a sweep.
+    clock.advance(GLOBAL_WINDOW_S + 1)
+    t.try_acquire("the-1000th-call", "9.9.9.9")
+
+    # Only the keys this very call just inserted survive -- every one of the
+    # 999 one-off visitors before it is gone.
+    assert set(t._hits) == {
+        ("session_hour", "the-1000th-call"),
+        ("session_day", "the-1000th-call"),
+        ("ip_burst", "9.9.9.9"),
+        ("ip_hour", "9.9.9.9"),
+    }

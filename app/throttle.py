@@ -8,7 +8,7 @@ check-then-record: that split is the non-atomic pattern which is a known open
 defect in the API's own rate limiter (OQ-002), and there is no reason to ship
 a second instance of it.
 """
-from collections import defaultdict, deque
+from collections import deque
 from dataclasses import dataclass
 from typing import Callable
 
@@ -39,29 +39,67 @@ BOUNDS = (
 GLOBAL_DAILY = 2000
 GLOBAL_WINDOW_S = 86400.0
 
+# Age each bound's key by its own window, so the periodic sweep can prune a
+# key it has never seen touched at request-time.
+_BOUND_AGES = {b.name: b.per_seconds for b in BOUNDS}
+
+# Every Nth try_acquire call pays for a full walk of the dict, so that a key
+# for a visitor who never returns (and so never gets pruned on read) does not
+# sit there forever. 1000 is cheap relative to the walk it buys.
+SWEEP_EVERY = 1000
+
 
 class Throttle:
     def __init__(self, clock: Callable[[], float]):
         self._clock = clock
-        self._hits: dict[tuple[str, str], deque[float]] = defaultdict(deque)
+        # A plain dict, NOT defaultdict: defaultdict inserts a fresh deque
+        # merely by being *read* via [], including for a request that is
+        # then refused. Refused requests must leave no trace, or an attacker
+        # (or just a busy day) can OOM the host by generating unique
+        # session/IP keys that are never evicted -- C1.
+        self._hits: dict[tuple[str, str], deque[float]] = {}
         self._global: deque[float] = deque()
+        self._calls = 0
 
     @staticmethod
     def _prune(window: deque[float], now: float, age: float) -> None:
         while window and window[0] <= now - age:
             window.popleft()
 
+    def _sweep(self, now: float) -> None:
+        """Prune every key's window and drop the ones left empty.
+
+        Without this, a key that is never read again after its last hit --
+        the common case, since most visitors do not return -- keeps its
+        deque (even once fully aged out) forever, because pruning normally
+        only happens as a side effect of a matching try_acquire() call.
+        """
+        empty = []
+        for key, window in self._hits.items():
+            age = _BOUND_AGES.get(key[0])
+            if age is not None:
+                self._prune(window, now, age)
+            if not window:
+                empty.append(key)
+        for key in empty:
+            del self._hits[key]
+
     def try_acquire(self, sid: str, ip: str) -> str | None:
         now = self._clock()
+        self._calls += 1
         keys = {"session": sid, "ip": ip}
 
-        windows = []
         for bound in BOUNDS:
-            window = self._hits[(bound.name, keys[bound.scope])]
-            self._prune(window, now, bound.per_seconds)
-            if len(window) >= bound.count:
-                return bound.name
-            windows.append(window)
+            key = (bound.name, keys[bound.scope])
+            # .get, never []: reading a key that has never been recorded
+            # must not create one. Only an ACCEPTED request, below, does.
+            window = self._hits.get(key)
+            if window is not None:
+                self._prune(window, now, bound.per_seconds)
+                if not window:
+                    del self._hits[key]
+                elif len(window) >= bound.count:
+                    return bound.name
 
         self._prune(self._global, now, GLOBAL_WINDOW_S)
         if len(self._global) >= GLOBAL_DAILY:
@@ -69,7 +107,16 @@ class Throttle:
 
         # Only now does anything get recorded -- a refusal must not consume
         # budget, or a blocked caller extends their own block by retrying.
-        for window in windows:
+        for bound in BOUNDS:
+            key = (bound.name, keys[bound.scope])
+            window = self._hits.get(key)
+            if window is None:
+                window = deque()
+                self._hits[key] = window
             window.append(now)
         self._global.append(now)
+
+        if self._calls % SWEEP_EVERY == 0:
+            self._sweep(now)
+
         return None

@@ -82,6 +82,7 @@ async def info(client: httpx.AsyncClient, settings: Settings) -> dict:
     try:
         response = await client.get(
             f"{settings.api_base}/analyze/info",
+            headers=_headers(settings),
             timeout=settings.upstream_timeout_s,
         )
         response.raise_for_status()

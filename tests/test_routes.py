@@ -1,3 +1,6 @@
+import asyncio
+import logging
+
 from fastapi.testclient import TestClient
 
 from app.session import COOKIE_NAME, parse
@@ -128,6 +131,27 @@ def test_healthz_reports_degraded_when_the_model_moves(client, upstream):
     assert body["live_model_version"] == "phase3-different"
 
 
+def test_rapid_healthz_hits_make_exactly_one_upstream_call(client, upstream):
+    """C2: /healthz is unauthenticated, uncookied, and unthrottled by design
+    -- so without a cache it is an amplifier onto the upstream API and its
+    database. N hits inside the cache TTL (the clock fixture does not
+    auto-advance) must produce exactly one upstream call, not N."""
+    for _ in range(50):
+        r = client.get("/healthz")
+        assert r.status_code == 200
+    assert upstream.calls == 1
+
+
+def test_healthz_refetches_after_the_cache_ttl_expires(client, upstream, clock):
+    from app.main import HEALTH_CACHE_TTL_S
+
+    client.get("/healthz")
+    assert upstream.calls == 1
+    clock.advance(HEALTH_CACHE_TTL_S + 1)
+    client.get("/healthz")
+    assert upstream.calls == 2
+
+
 def test_throttle_refusal_logs_the_bound(client, caplog):
     client.get("/")
     with caplog.at_level("INFO", logger="lexicro.demo"):
@@ -248,7 +272,106 @@ def test_curl_example_uses_the_placeholder_key_if_present(client):
     assert SETTINGS.api_key not in r.text
 
 
-def test_textarea_has_an_associated_label(client):
+def test_matching_origin_is_allowed(client):
+    client.get("/")
+    r = client.post(
+        "/api/analyze",
+        json={"text": "Un text oarecare."},
+        headers={"Origin": "https://testserver"},
+    )
+    assert r.status_code == 200
+
+
+def test_mismatched_origin_is_rejected(client, upstream):
+    """I7: T-3's Origin/Referer half was never implemented -- only the
+    cookie check shipped. A cross-site Origin must be rejected even with a
+    valid session cookie."""
+    client.get("/")
+    r = client.post(
+        "/api/analyze",
+        json={"text": "Un text oarecare."},
+        headers={"Origin": "https://evil.example"},
+    )
+    assert r.status_code == 403
+    assert upstream.calls == 0
+
+
+def test_absent_origin_and_referer_are_allowed(client):
+    """TestClient (and most non-browser HTTP clients) send neither header by
+    default; the existing suite already exercises this path, but this test
+    pins it explicitly so a future tightening of _is_cross_site can't
+    silently 403 every caller that omits both headers."""
+    client.get("/")
+    r = client.post("/api/analyze", json={"text": "Un alt text oarecare."})
+    assert r.status_code == 200
+
+
+def test_empty_text_is_rejected_as_bad_input(client, upstream):
+    client.get("/")
+    r = client.post("/api/analyze", json={"text": ""})
+    assert r.status_code == 400
+    assert r.json() == {"error": STRINGS["en"]["err_bad_input"]}
+    assert upstream.calls == 0
+
+
+def test_whitespace_only_text_is_rejected_as_bad_input(client, upstream):
+    client.get("/")
+    r = client.post("/api/analyze", json={"text": "   \n\t  "})
+    assert r.status_code == 400
+    assert r.json() == {"error": STRINGS["en"]["err_bad_input"]}
+    assert upstream.calls == 0
+
+
+def test_semaphore_is_created_by_the_lifespan_context_manager(client):
+    """I8: @app.on_event("startup") was replaced with a lifespan context
+    manager (the modern, non-deprecated equivalent) -- confirm the semaphore
+    it used to create still gets created."""
+    assert isinstance(client.app.state.semaphore, asyncio.Semaphore)
+
+
+def test_create_default_app_configures_logging_for_info(monkeypatch):
+    """I6: 'lexicro.demo' had no handler anywhere in its hierarchy and an
+    effective level of WARNING, so isEnabledFor(INFO) was False and every
+    abuse-detection log line (refused/upstream/hero) was silently dropped --
+    the only abuse detection this system has. create_default_app() (the real
+    uvicorn entry point, NOT create_app(), which tests call) must leave the
+    logger actually enabled for INFO."""
+    from app.main import create_default_app
+
+    monkeypatch.setenv("LEXICRO_DEMO_KEY", "lxr_abc")
+    monkeypatch.setenv("SESSION_SECRET", "s3cret")
+    logger = logging.getLogger("lexicro.demo")
+    try:
+        create_default_app()
+        assert logger.isEnabledFor(logging.INFO)
+        assert logger.handlers, "expected at least one handler, not just a raised level"
+    finally:
+        logger.handlers.clear()
+        logger.setLevel(logging.NOTSET)
+
+
+def test_every_data_text_on_the_page_is_a_free_hero_hit(client, upstream):
+    """Pins the 'heroes cost nothing' guarantee (FR-027) across heroes.py,
+    index.html and main.py together, rather than relying on the three
+    agreeing by string coincidence. Renders the real page, extracts every
+    data-text attribute the template emits, and posts each one back --
+    zero of them may reach upstream."""
+    import re
+
+    client.get("/")
+    r = client.get("/")
+    texts = re.findall(r'data-text="([^"]*)"', r.text)
+    assert texts, "expected the template to render at least one data-text attribute"
+
+    import html as html_module
+    for text in texts:
+        resp = client.post("/api/analyze", json={"text": html_module.unescape(text)})
+        assert resp.status_code == 200, (text, resp.text)
+
+    assert upstream.calls == 0
+
+
+def test_semaphore_is_created_by_the_lifespan_context_manager(client):
     """The textarea is the primary interactive element on the page; a
     placeholder alone is not reliably used for accessible-name computation."""
     r = client.get("/")

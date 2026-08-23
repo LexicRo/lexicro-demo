@@ -4,11 +4,14 @@ The order of checks in POST /api/analyze is load-bearing and is spelled out in
 spec section 3. In particular the hero cache is consulted BEFORE the throttle,
 because FR-027 requires the examples most visitors click to cost no budget.
 """
+import asyncio
 import ipaddress
 import logging
 import time
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Callable
+from urllib.parse import urlsplit
 
 import httpx
 from fastapi import FastAPI, Request
@@ -37,6 +40,12 @@ ERROR_STATUS = {
 }
 
 logger = logging.getLogger("lexicro.demo")
+
+# C2: how long a /healthz verdict is served from cache before refreshing.
+# UptimeRobot-class monitors poll every few minutes; this bounds /healthz to
+# at most one upstream call (and one upstream DB hit) per window, regardless
+# of hit rate.
+HEALTH_CACHE_TTL_S = 300.0
 
 
 def _log(event: str, **fields) -> None:
@@ -93,6 +102,31 @@ def client_ip(request: Request, trust_proxy: bool) -> str:
     return request.client.host if request.client else "unknown"
 
 
+def _is_cross_site(request: Request) -> bool:
+    """I7: the second half of T-3. Only the cookie check shipped; this is the
+    Origin/Referer half.
+
+    A present-but-mismatched Origin is the one shape only a cross-site
+    browser request can take (same-site fetches send either a matching
+    Origin or none at all), so that is what gets rejected.
+
+    An ABSENT Origin (and Referer) is deliberately treated as allowed, not
+    rejected. Browsers omit Origin on plenty of legitimate same-site
+    requests, and TestClient -- and most non-browser HTTP clients -- send
+    neither header by default; rejecting on absence would 403 the entire
+    existing test suite and any tool calling this endpoint directly, for no
+    actual security gain (the cookie check above already does the real
+    work against those callers).
+    """
+    origin = request.headers.get("origin")
+    if not origin:
+        return False
+    parsed = urlsplit(origin)
+    return (parsed.scheme, parsed.hostname, parsed.port) != (
+        request.url.scheme, request.url.hostname, request.url.port,
+    )
+
+
 def _error(lang: str, kind: str) -> JSONResponse:
     return JSONResponse(
         {"error": t(lang, f"err_{kind}")},
@@ -106,13 +140,28 @@ def create_app(
     clock: Callable[[], float],
     http: httpx.AsyncClient,
 ) -> FastAPI:
-    app = FastAPI(title="LexicRo demo", docs_url=None, redoc_url=None, openapi_url=None)
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        # I8: modern replacement for the deprecated @app.on_event("startup").
+        # That decorator is slated for removal -- FastAPI dropping it would
+        # break every route on a routine `git pull`, with no code change of
+        # our own to point at.
+        app.state.semaphore = asyncio.Semaphore(settings.upstream_concurrency)
+        yield
+
+    app = FastAPI(
+        title="LexicRo demo", docs_url=None, redoc_url=None, openapi_url=None,
+        lifespan=lifespan,
+    )
     # Only app.state.http and app.state.throttle are read anywhere (routes
     # close over settings/heroes/clock directly) -- app.state.http is also
     # reassigned by a test, which is why it stays on state rather than being
     # captured in a closure too.
     app.state.http = http
     app.state.throttle = Throttle(clock)
+    # C2: /healthz's cached upstream verdict and the time it was fetched.
+    # None means "never fetched yet".
+    app.state.health_cache = None
 
     templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
     app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
@@ -157,10 +206,15 @@ def create_app(
         if sid is None:
             return _error("en", "no_session")
 
+        # 1b. the other half of T-3 -- see _is_cross_site's docstring for why
+        # only a MISMATCHED Origin (not merely an absent one) is rejected.
+        if _is_cross_site(request):
+            return _error(lang, "no_session")
+
         try:
             body = await request.json()
             text = body["text"]
-            if not isinstance(text, str):
+            if not isinstance(text, str) or not text.strip():
                 raise ValueError
         except Exception:
             return _error(lang, "bad_input")
@@ -200,8 +254,7 @@ def create_app(
                     kind = "unavailable"
                 return _error(lang, kind)
 
-    @app.get("/healthz")
-    async def healthz():
+    async def _fetch_health() -> dict:
         body = {
             "status": "ok",
             "fixture_model_version": heroes.model_version,
@@ -227,12 +280,22 @@ def create_app(
         except UpstreamError:
             body["status"] = "degraded"
             body["reason"] = "upstream unreachable"
-        return JSONResponse(body)
+        return body
 
-    @app.on_event("startup")
-    async def _startup():
-        import asyncio
-        app.state.semaphore = asyncio.Semaphore(settings.upstream_concurrency)
+    @app.get("/healthz")
+    async def healthz():
+        # C2: /healthz is public, uncookied, and unthrottled by design (a
+        # monitor must be able to call it without a session) -- which also
+        # makes it an unauthenticated amplifier onto the upstream API and its
+        # database if every hit refetches. Cache the verdict for
+        # HEALTH_CACHE_TTL_S regardless of how often /healthz itself is hit.
+        now = clock()
+        cache = app.state.health_cache
+        if cache is None or now - cache[0] >= HEALTH_CACHE_TTL_S:
+            body = await _fetch_health()
+            cache = (now, body)
+            app.state.health_cache = cache
+        return JSONResponse(cache[1])
 
     return app
 
@@ -253,6 +316,21 @@ def create_default_app() -> FastAPI:
     posture, e.g. the API's own migration-gate at startup) rather than
     starting "successfully" and then failing every request.
     """
+    # I6: _log() has been silently emitting nothing at all. "lexicro.demo"'s
+    # effective level was WARNING (the logging module's own default) and no
+    # handler existed anywhere in its hierarchy, so isEnabledFor(INFO) was
+    # False and every abuse-detection log line -- "refused", "upstream",
+    # "hero" -- was dropped before it was ever formatted. This is the only
+    # abuse detection the system has, so it must be configured somewhere
+    # real requests actually go through. Deliberately NOT in create_app():
+    # tests call that directly and rely on caplog's own level control instead
+    # of a global logging config leaking between test runs.
+    if not logger.handlers:
+        handler = logging.StreamHandler()
+        handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+        logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
+
     settings = load_settings()
     return create_app(
         settings,
