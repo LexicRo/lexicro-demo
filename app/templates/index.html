@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ s.title }}</h1>
+<p>{{ s.tagline }}</p>
+
+<form id="analyser">
+    <textarea id="text" maxlength="{{ max_chars }}" placeholder="{{ s.placeholder }}"></textarea>
+    <button type="submit">{{ s.submit }}</button>
+</form>
+
+<a href="/?lang={{ other_lang }}">{{ s.lang_switch }}</a>
+{% endblock %}
