@@ -102,6 +102,21 @@ def client_ip(request: Request, trust_proxy: bool) -> str:
     return request.client.host if request.client else "unknown"
 
 
+_DEFAULT_PORTS = {"http": 80, "https": 443}
+
+
+def _origin_tuple(scheme: str | None, host: str | None, port: int | None) -> tuple:
+    """Scheme/host/port with the scheme's default port made explicit.
+
+    A URL omits its default port and a Host header may carry it, so the raw
+    values disagree for the same origin: `https://x` parses to port None
+    while `Host: x:443` parses to 443. Comparing raw would 403 a legitimate
+    same-site visitor.
+    """
+    scheme = (scheme or "").lower()
+    return (scheme, (host or "").lower(), port or _DEFAULT_PORTS.get(scheme))
+
+
 def _is_cross_site(request: Request) -> bool:
     """I7: the second half of T-3. Only the cookie check shipped; this is the
     Origin/Referer half.
@@ -122,7 +137,7 @@ def _is_cross_site(request: Request) -> bool:
     if not origin:
         return False
     parsed = urlsplit(origin)
-    return (parsed.scheme, parsed.hostname, parsed.port) != (
+    return _origin_tuple(parsed.scheme, parsed.hostname, parsed.port) != _origin_tuple(
         request.url.scheme, request.url.hostname, request.url.port,
     )
 

@@ -306,6 +306,57 @@ def test_absent_origin_and_referer_are_allowed(client):
     assert r.status_code == 200
 
 
+def test_different_scheme_same_host_is_rejected(client, upstream):
+    """Same host, different scheme -- still cross-site (e.g. a downgrade
+    from https to http is exactly the kind of mismatch Origin checking
+    exists to catch)."""
+    client.get("/")
+    r = client.post(
+        "/api/analyze",
+        json={"text": "Un text oarecare."},
+        headers={"Origin": "http://testserver"},
+    )
+    assert r.status_code == 403
+    assert upstream.calls == 0
+
+
+class _FakeURL:
+    def __init__(self, scheme, hostname, port):
+        self.scheme = scheme
+        self.hostname = hostname
+        self.port = port
+
+
+class _FakeRequest:
+    """A minimal stand-in for Starlette's Request: _is_cross_site only ever
+    touches .headers.get("origin") and .url.{scheme,hostname,port}.
+
+    Used instead of TestClient for the default-port case below because
+    TestClient derives request.url straight from base_url, so a request
+    made through it can never produce a request.url.port that disagrees
+    with the Origin header the way a real `Host: host:443` header can --
+    the very mismatch this test exists to exercise."""
+
+    def __init__(self, origin, scheme, hostname, port):
+        self.headers = {} if origin is None else {"origin": origin}
+        self.url = _FakeURL(scheme, hostname, port)
+
+
+def test_origin_omitting_default_port_matches_host_carrying_it():
+    """I7 port bug: Origin omits the default port (browsers always do this)
+    while the request's Host header carries it explicitly (":443"). Both
+    describe the same origin and this must be allowed, not 403'd."""
+    from app.main import _is_cross_site
+
+    request = _FakeRequest(
+        origin="https://demo.example.com",
+        scheme="https",
+        hostname="demo.example.com",
+        port=443,
+    )
+    assert _is_cross_site(request) is False
+
+
 def test_empty_text_is_rejected_as_bad_input(client, upstream):
     client.get("/")
     r = client.post("/api/analyze", json={"text": ""})
@@ -371,7 +422,7 @@ def test_every_data_text_on_the_page_is_a_free_hero_hit(client, upstream):
     assert upstream.calls == 0
 
 
-def test_semaphore_is_created_by_the_lifespan_context_manager(client):
+def test_textarea_has_an_associated_label(client):
     """The textarea is the primary interactive element on the page; a
     placeholder alone is not reliably used for accessible-name computation."""
     r = client.get("/")
