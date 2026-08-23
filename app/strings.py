@@ -60,7 +60,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "candidates_label": "Citirile oferite de dicționar",
         "json_toggle": "Arată JSON brut",
         "max_chars_hint": "maximum 500 de caractere",
-        "err_too_long": "Textul depășește limita demonstrației. Scurtează-l sau folosește o cheie proprie.",
+        "err_too_long": "Textul depășește limita demonstrației. Scurtează-l sau folosește o cheie proprie și apelează API-ul direct.",
         "err_no_session": "Sesiunea a expirat. Reîncarcă pagina și încearcă din nou.",
         "err_throttled": "Ai atins limita demonstrației — obține propria cheie gratuită.",
         "err_quota": "Bugetul demonstrației pe ziua de azi s-a epuizat — obține propria cheie gratuită.",

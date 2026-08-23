@@ -20,14 +20,28 @@ def test_all_languages_are_present():
 def test_no_string_contains_a_hardcoded_figure():
     """Spec section 4: the demo demonstrates, the guide claims. Every number
     that circulated in this project drifted at least once -- see the figures
-    register in 30-api-spec.md."""
+    register in 30-api-spec.md. Digits are the obvious vector; spelled-out
+    numbers are the one that would actually get past review."""
     allowed = {"max_chars_hint"}  # renders the 500 cap, which is OUR constant
-    offender = re.compile(r"\d")
+    digit = re.compile(r"\d|%")
+    # Magnitude and measurement words only. Small cardinals are deliberately
+    # absent: "two readings" describes this page's own structure and cannot
+    # drift, whereas every accuracy or latency claim this project has ever
+    # made needs a magnitude word or a digit to express.
+    number_words = (
+        "hundred", "thousand", "million", "percent",
+        "sută", "sute", "mie", "mii", "milion", "milioane", "procent", "procente",
+    )
     for lang, table in STRINGS.items():
         for key, value in table.items():
             if key in allowed:
                 continue
-            assert not offender.search(value), f"{lang}.{key} contains a digit: {value!r}"
+            assert not digit.search(value), f"{lang}.{key} contains a digit or %: {value!r}"
+            lowered = value.casefold()
+            for word in number_words:
+                assert word not in lowered.split() and word not in lowered.replace(",", " ").split(), (
+                    f"{lang}.{key} contains the number word {word!r}: {value!r}"
+                )
 
 
 def test_ud_terms_are_not_translated():
