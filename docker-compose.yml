@@ -1,0 +1,20 @@
+services:
+  demo:
+    build: .
+    ports:
+      # Loopback only. nginx terminates TLS; NFR-032's discipline, and there
+      # is no reason to weaken it for the demo.
+      - "127.0.0.1:8002:8002"
+    environment:
+      LEXICRO_API_BASE: ${LEXICRO_API_BASE}
+      LEXICRO_DEMO_KEY: ${LEXICRO_DEMO_KEY}
+      SESSION_SECRET: ${SESSION_SECRET}
+      TRUST_PROXY: "true"
+    restart: unless-stopped
+    logging:
+      # Docker's json-file driver keeps logs forever and ends in a full disk,
+      # which would take the API down with it. OPERATIONS.md section 2.
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
