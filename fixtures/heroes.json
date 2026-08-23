@@ -1,0 +1,16 @@
+{
+  "model_version": "unset",
+  "generated_at": "unset",
+  "pairs": [
+    {
+      "form": "sare",
+      "a": {"text": "Pune sare în mâncare.", "analysis": {}},
+      "b": {"text": "Pisica sare pe masă.", "analysis": {}}
+    },
+    {
+      "form": "port",
+      "a": {"text": "Constanța are un port mare.", "analysis": {}},
+      "b": {"text": "Eu port o cămașă albă.", "analysis": {}}
+    }
+  ]
+}
