@@ -190,7 +190,22 @@ def create_app(
     return app
 
 
-def _build() -> FastAPI:
+def create_default_app() -> FastAPI:
+    """uvicorn factory entry point: `uvicorn app.main:create_default_app --factory`.
+
+    There is deliberately no module-level `app` here. app.config's own
+    docstring establishes the rule that importing a module must not require
+    a populated environment ("Fail by name instead" of exploding at import
+    time) -- tests import this module only to reach `create_app`, and a
+    module-level `app = create_default_app()` would force every test run to
+    configure LEXICRO_DEMO_KEY and SESSION_SECRET just to collect.
+
+    The factory idiom also gets failure timing right for a real deployment:
+    construction happens at container start, so a broken or missing .env
+    refuses to start (matching this project's established refuse-to-serve
+    posture, e.g. the API's own migration-gate at startup) rather than
+    starting "successfully" and then failing every request.
+    """
     settings = load_settings()
     return create_app(
         settings,
@@ -198,28 +213,3 @@ def _build() -> FastAPI:
         time.monotonic,
         httpx.AsyncClient(),
     )
-
-
-class _LazyApp:
-    """Defers `_build()` until the app is actually served.
-
-    app.config's own docstring establishes the rule that importing a module
-    must not require a populated environment ("Fail by name instead" of
-    exploding at import time). `app = _build()` at module scope would break
-    that rule here: tests import this module only to reach `create_app`, and
-    would otherwise force every test run to configure LEXICRO_DEMO_KEY and
-    SESSION_SECRET just to collect. A real deployment missing its .env still
-    fails loudly and by name -- just on the first ASGI call instead of at
-    import -- via load_settings()'s own RuntimeError.
-    """
-
-    def __init__(self) -> None:
-        self._instance: FastAPI | None = None
-
-    async def __call__(self, scope, receive, send) -> None:
-        if self._instance is None:
-            self._instance = _build()
-        await self._instance(scope, receive, send)
-
-
-app = _LazyApp()
