@@ -246,3 +246,11 @@ def test_curl_example_uses_the_placeholder_key_if_present(client):
     if "curl" in r.text:
         assert "lxr_your_key_here" in r.text
     assert SETTINGS.api_key not in r.text
+
+
+def test_textarea_has_an_associated_label(client):
+    """The textarea is the primary interactive element on the page; a
+    placeholder alone is not reliably used for accessible-name computation."""
+    r = client.get("/")
+    assert 'for="text"' in r.text
+    assert r.text.index("<label") < r.text.index('<textarea id="text"')

@@ -18,6 +18,7 @@
 <section class="analyser">
   <h2>{{ s.analyser_heading }}</h2>
   <form id="analyse-form">
+    <label class="visually-hidden" for="text">{{ s.analyser_heading }}</label>
     <textarea id="text" maxlength="{{ max_chars }}"
               placeholder="{{ s.placeholder }}"></textarea>
     <div class="row">
@@ -26,7 +27,7 @@
     </div>
   </form>
   <div id="result"></div>
-  <button id="json-toggle" hidden>{{ s.json_toggle }}</button>
+  <button id="json-toggle" hidden aria-pressed="false">{{ s.json_toggle }}</button>
   <pre id="raw-json" hidden></pre>
 </section>
 

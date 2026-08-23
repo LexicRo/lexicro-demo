@@ -62,6 +62,7 @@ form.addEventListener("submit", async (event) => {
   event.preventDefault();
   result.textContent = "…";
   toggle.hidden = true;
+  toggle.setAttribute("aria-pressed", "false");
   raw.hidden = true;
   try {
     const data = await analyse(input.value);
@@ -73,7 +74,12 @@ form.addEventListener("submit", async (event) => {
   }
 });
 
-toggle.addEventListener("click", () => { raw.hidden = !raw.hidden; });
+const toggleLabel = toggle.textContent;
+toggle.addEventListener("click", () => {
+  raw.hidden = !raw.hidden;
+  toggle.setAttribute("aria-pressed", String(!raw.hidden));
+  toggle.textContent = toggleLabel;
+});
 
 const counter = document.getElementById("counter");
 input.addEventListener("input", () => {
