@@ -1,10 +1,25 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="{{ lang }}">
 <head>
-    <meta charset="utf-8">
-    <title>{{ s.title }}</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ s.title }}</title>
+  <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    {% block content %}{% endblock %}
+  <header>
+    <h1>{{ s.title }}</h1>
+    <p class="tagline">{{ s.tagline }}</p>
+    <a class="lang" href="/?lang={{ other_lang }}">{{ s.lang_switch }}</a>
+  </header>
+  <main>{% block content %}{% endblock %}</main>
+  <footer>
+    <p>{{ s.about }}</p>
+    <p>
+      <a href="https://api.lexicro.com/guide">{{ s.guide_link }}</a> ·
+      <a href="https://api.lexicro.com/attribution">{{ s.attribution_link }}</a>
+    </p>
+  </footer>
+  <script src="/static/app.js"></script>
 </body>
 </html>

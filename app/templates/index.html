@@ -1,12 +1,43 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>{{ s.title }}</h1>
-<p>{{ s.tagline }}</p>
+<section class="hero">
+  <h2>{{ s.hero_heading }}</h2>
+  <p>{{ s.hero_explain }}</p>
+  {% for pair in pairs %}
+  <div class="pair" data-form="{{ pair.form }}">
+    {% for side in ['a', 'b'] %}
+    <figure class="panel">
+      <figcaption>{{ pair[side].text }}</figcaption>
+      <div class="tokens" data-text="{{ pair[side].text }}"></div>
+    </figure>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</section>
 
-<form id="analyser">
-    <textarea id="text" maxlength="{{ max_chars }}" placeholder="{{ s.placeholder }}"></textarea>
-    <button type="submit">{{ s.submit }}</button>
-</form>
+<section class="analyser">
+  <h2>{{ s.analyser_heading }}</h2>
+  <form id="analyse-form">
+    <textarea id="text" maxlength="{{ max_chars }}"
+              placeholder="{{ s.placeholder }}"></textarea>
+    <div class="row">
+      <span id="counter" data-max="{{ max_chars }}">{{ s.max_chars_hint }}</span>
+      <button type="submit">{{ s.submit }}</button>
+    </div>
+  </form>
+  <div id="result"></div>
+  <button id="json-toggle" hidden>{{ s.json_toggle }}</button>
+  <pre id="raw-json" hidden></pre>
+</section>
 
-<a href="/?lang={{ other_lang }}">{{ s.lang_switch }}</a>
+<section class="cta">
+  <a class="button" href="https://tally.so/r/GxBBbz">{{ s.cta }}</a>
+</section>
+
+<script id="labels" type="application/json">
+{{ {"form": s.col_form, "lemma": s.col_lemma, "upos": s.col_upos,
+    "feats": s.col_feats, "source": s.col_source,
+    "candidates": s.candidates_label, "truncated": s.truncated_note}
+   | tojson }}
+</script>
 {% endblock %}

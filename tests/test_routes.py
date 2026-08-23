@@ -213,3 +213,36 @@ def test_real_ip_header_is_honoured_from_a_private_peer(app):
             if r.status_code == 200:
                 admitted += 1
         assert admitted == 80
+
+
+def test_page_shows_both_hero_pairs(client):
+    r = client.get("/")
+    assert "Pune sare" in r.text
+    assert "Pisica sare" in r.text
+
+
+def test_page_offers_the_other_language(client):
+    from app.strings import STRINGS
+    r = client.get("/")
+    assert STRINGS["en"]["lang_switch"] in r.text
+    assert "?lang=ro" in r.text
+
+
+def test_page_links_to_the_guide_and_attribution(client):
+    r = client.get("/")
+    assert "api.lexicro.com/guide" in r.text
+    assert "api.lexicro.com/attribution" in r.text
+
+
+def test_page_declares_the_character_cap(client):
+    r = client.get("/")
+    assert "500" in r.text
+
+
+def test_curl_example_uses_the_placeholder_key_if_present(client):
+    """Spec section 2 names this as the likeliest accidental key leak, because
+    it arrives as a feature request rather than a bug."""
+    r = client.get("/")
+    if "curl" in r.text:
+        assert "lxr_your_key_here" in r.text
+    assert SETTINGS.api_key not in r.text
