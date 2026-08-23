@@ -79,6 +79,9 @@ async def test_timeout_maps_to_timeout():
         with pytest.raises(UpstreamError) as e:
             await analyze(c, SETTINGS, "test")
     assert e.value.kind == "timeout"
+    # Verify context attributes are cleared to prevent key leak
+    assert e.value.__cause__ is None
+    assert e.value.__context__ is None
 
 
 async def test_error_never_carries_the_upstream_body_or_the_key():
@@ -91,6 +94,11 @@ async def test_error_never_carries_the_upstream_body_or_the_key():
     rendered = repr(e.value) + str(e.value)
     assert "secret internals" not in rendered
     assert "lxr_super_secret_value" not in rendered
+    # Verify context attributes do not carry the key or body
+    assert e.value.__cause__ is None
+    assert e.value.__context__ is None
+    assert "lxr_super_secret_value" not in str(e.value.args)
+    assert "secret internals" not in str(e.value.args)
 
 
 async def test_info_reads_model_version():

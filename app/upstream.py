@@ -30,7 +30,21 @@ def _headers(settings: Settings) -> dict[str, str]:
     }
 
 
+def _raise(kind: str) -> None:
+    """Raise UpstreamError with both __cause__ and __context__ cleared.
+
+    `from None` alone leaves __context__ holding the httpx exception, whose
+    request headers carry X-API-Key. We must null both or the key stays reachable.
+    """
+    err = UpstreamError(kind)
+    err.__cause__ = None
+    err.__context__ = None
+    err.__suppress_context__ = True
+    raise err
+
+
 async def analyze(client: httpx.AsyncClient, settings: Settings, text: str) -> dict:
+    error_kind = None
     try:
         response = await client.post(
             f"{settings.api_base}/analyze",
@@ -39,11 +53,12 @@ async def analyze(client: httpx.AsyncClient, settings: Settings, text: str) -> d
             timeout=settings.upstream_timeout_s,
         )
     except (httpx.TimeoutException,):
-        raise UpstreamError("timeout") from None
+        error_kind = "timeout"
     except httpx.HTTPError:
-        # `from None` matters: chaining would attach the original exception,
-        # whose request object holds the X-API-Key header.
-        raise UpstreamError("unavailable") from None
+        error_kind = "unavailable"
+
+    if error_kind:
+        _raise(error_kind)
 
     if response.status_code == 429:
         raise UpstreamError("quota")
@@ -53,10 +68,14 @@ async def analyze(client: httpx.AsyncClient, settings: Settings, text: str) -> d
         # 401/403 mean OUR key is wrong. That is never the visitor's problem.
         raise UpstreamError("unavailable")
 
+    error_kind = None
     try:
         return response.json()
     except ValueError:
-        raise UpstreamError("unavailable") from None
+        error_kind = "unavailable"
+
+    if error_kind:
+        _raise(error_kind)
 
 
 async def info(client: httpx.AsyncClient, settings: Settings) -> dict:
@@ -68,4 +87,6 @@ async def info(client: httpx.AsyncClient, settings: Settings) -> dict:
         response.raise_for_status()
         return response.json()
     except (httpx.HTTPError, ValueError):
-        raise UpstreamError("unavailable") from None
+        pass
+
+    _raise("unavailable")
