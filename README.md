@@ -40,6 +40,12 @@ the same Hetzner host, behind the same nginx.
 
 To redeploy after a change, run `./deploy.sh` again on the host.
 
+After the first build, confirm the image carries no secret:
+```bash
+docker run --rm --entrypoint sh lexicro-demo-demo -c 'ls -a /app' | grep -c "^\.env$"
+```
+Expected: `0`.
+
 ## Learn More
 
 See the [LexicRo API guide](https://api.lexicro.com/guide) for detailed information about the API.
