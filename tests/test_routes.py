@@ -113,12 +113,19 @@ def test_romanian_page_renders_romanian_copy(client):
 
 
 def test_healthz_reports_ok_when_versions_match(client):
-    body = client.get("/healthz").json()
+    r = client.get("/healthz")
+    assert r.status_code == 200
+    body = r.json()
     assert body["status"] == "ok"
     assert body["fixture_model_version"] == "phase2-baseline-0.1"
+    assert body["version_drift"] is False
 
 
-def test_healthz_reports_degraded_when_the_model_moves(client, upstream):
+def test_healthz_returns_503_when_the_model_moves(client, upstream):
+    """The hero fixture is stale against a newer upstream model_version --
+    persistent and actionable (someone must regenerate the fixture) -- so
+    this is the one reason worth paging a monitor over. A plain 200 body
+    field would never trip an UptimeRobot-class HTTP monitor."""
     import httpx
 
     def drifted(request):
@@ -126,9 +133,67 @@ def test_healthz_reports_degraded_when_the_model_moves(client, upstream):
         return httpx.Response(200, json={"model_version": "phase3-different"})
 
     client.app.state.http = httpx.AsyncClient(transport=httpx.MockTransport(drifted))
-    body = client.get("/healthz").json()
+    r = client.get("/healthz")
+    assert r.status_code == 503
+    body = r.json()
     assert body["status"] == "degraded"
     assert body["live_model_version"] == "phase3-different"
+    assert body["version_drift"] is True
+
+
+def test_healthz_stays_200_when_upstream_is_unreachable(client):
+    """Transient upstream trouble is not this service's outage -- the
+    upstream API has its own monitoring -- so it must not page."""
+    import httpx
+
+    def unreachable(request):
+        raise httpx.ConnectError("boom", request=request)
+
+    client.app.state.http = httpx.AsyncClient(transport=httpx.MockTransport(unreachable))
+    r = client.get("/healthz")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["status"] == "degraded"
+    assert body["reason"] == "upstream unreachable"
+    assert body["version_drift"] is False
+
+
+def test_healthz_stays_200_when_upstream_shape_is_unreadable(client):
+    """We cannot read a version out of a non-dict response, so we don't know
+    whether we've drifted -- a 'don't know' state, not a 'we are wrong' one --
+    and it must not page."""
+    import httpx
+
+    def odd_shape(request):
+        return httpx.Response(200, json=["not", "a", "dict"])
+
+    client.app.state.http = httpx.AsyncClient(transport=httpx.MockTransport(odd_shape))
+    r = client.get("/healthz")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["reason"] == "upstream returned an unexpected shape"
+    assert body["version_drift"] is False
+
+
+def test_healthz_cached_drift_result_still_returns_503_without_a_new_upstream_call(client, upstream):
+    """C2's cache stores the whole body, including version_drift -- the
+    status code must be derived from the cached body on every request, not
+    computed once at fetch time and lost when the cached response is served."""
+    import httpx
+
+    def drifted(request):
+        upstream.calls += 1
+        return httpx.Response(200, json={"model_version": "phase3-different"})
+
+    client.app.state.http = httpx.AsyncClient(transport=httpx.MockTransport(drifted))
+    first = client.get("/healthz")
+    assert first.status_code == 503
+    assert upstream.calls == 1
+
+    second = client.get("/healthz")
+    assert second.status_code == 503
+    assert second.json()["version_drift"] is True
+    assert upstream.calls == 1
 
 
 def test_rapid_healthz_hits_make_exactly_one_upstream_call(client, upstream):

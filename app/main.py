@@ -274,6 +274,7 @@ def create_app(
             "status": "ok",
             "fixture_model_version": heroes.model_version,
             "live_model_version": None,
+            "version_drift": False,
         }
         try:
             # Same semaphore as /api/analyze: without it, /healthz is an
@@ -286,6 +287,7 @@ def create_app(
             if live and live != heroes.model_version:
                 body["status"] = "degraded"
                 body["reason"] = "hero fixture was generated under a different model_version"
+                body["version_drift"] = True
             elif not isinstance(live_info, dict):
                 # info() returned something we can't read a version out of.
                 # A health endpoint must not raise just because the thing it
@@ -310,7 +312,15 @@ def create_app(
             body = await _fetch_health()
             cache = (now, body)
             app.state.health_cache = cache
-        return JSONResponse(cache[1])
+        # Only a stale hero fixture (version_drift) pages a monitor with 503:
+        # it is persistent and someone must regenerate the fixture. A
+        # transient upstream blip or an unreadable response is a "don't
+        # know"/"not our fault" state, not an outage of THIS service, and the
+        # upstream API already has its own monitoring -- so both stay 200.
+        # Keyed on the boolean, not the "reason" prose, so rewording a
+        # human-readable reason can never silently flip the status code.
+        status_code = 503 if cache[1].get("version_drift") else 200
+        return JSONResponse(cache[1], status_code=status_code)
 
     return app
 
