@@ -73,9 +73,16 @@ def clock():
 
 
 @pytest.fixture
-def client(fixture_file, upstream, clock):
+def app(fixture_file, upstream, clock):
+    """The bare FastAPI instance, for tests that need to control the ASGI
+    peer address themselves (e.g. the X-Real-IP spoofing tests) rather than
+    accepting the `client` fixture's default "testclient" peer."""
     http = httpx.AsyncClient(transport=httpx.MockTransport(upstream.handler))
-    app = create_app(SETTINGS, load(fixture_file), clock, http)
+    return create_app(SETTINGS, load(fixture_file), clock, http)
+
+
+@pytest.fixture
+def client(app):
     # base_url is https:// because SETTINGS leaves cookie_secure at its True
     # default (matching production behind TLS): a Secure cookie is withheld
     # by httpx's jar on outgoing requests over plain http, exactly as a real

@@ -4,6 +4,7 @@ The order of checks in POST /api/analyze is load-bearing and is spelled out in
 spec section 3. In particular the hero cache is consulted BEFORE the throttle,
 because FR-027 requires the examples most visitors click to cost no budget.
 """
+import ipaddress
 import logging
 import time
 from pathlib import Path
@@ -27,6 +28,7 @@ FIXTURE_PATH = BASE_DIR.parent / "fixtures" / "heroes.json"
 
 ERROR_STATUS = {
     "too_long": 400,
+    "bad_input": 400,
     "no_session": 403,
     "throttled": 429,
     "quota": 429,
@@ -44,6 +46,26 @@ def _log(event: str, **fields) -> None:
     logger.info("%s %s", event, " ".join(f"{k}={v}" for k, v in fields.items()))
 
 
+def _is_trusted_peer(request: Request) -> bool:
+    """Only a loopback or private immediate peer may hand us a forwarding header.
+
+    Without this, the guarantee that X-Real-IP is trustworthy lives entirely in
+    nginx's config, in a different repo. Any caller who reaches this process
+    directly -- bypassing nginx, or in a deployment where it isn't in front --
+    could set X-Real-IP to whatever they like and walk straight through the
+    per-session and per-IP bounds, leaving only the global daily cap. TestClient
+    reports request.client.host as the literal string "testclient", which is
+    not a parseable address and so is correctly treated as untrusted here.
+    """
+    if request.client is None:
+        return False
+    try:
+        peer = ipaddress.ip_address(request.client.host)
+    except ValueError:
+        return False
+    return peer.is_loopback or peer.is_private
+
+
 def client_ip(request: Request, trust_proxy: bool) -> str:
     """The caller's address, not the proxy's.
 
@@ -52,8 +74,15 @@ def client_ip(request: Request, trust_proxy: bool) -> str:
     and silently disable it. nginx MUST be setting X-Real-IP; see the spec's
     operations section, which flags this as the line most likely to be
     forgotten and least likely to be noticed.
+
+    trust_proxy alone is not the gate: it is the operator's declaration that a
+    proxy is expected to be present, but a header is only ever honoured when
+    the immediate peer is itself loopback or private -- i.e. it could only be
+    our own reverse proxy. A caller reaching this process directly, from a
+    non-private address, gets its own X-Real-IP/X-Forwarded-For ignored
+    outright, so it cannot forge its way around the per-IP backstop.
     """
-    if trust_proxy:
+    if trust_proxy and _is_trusted_peer(request):
         real_ip = request.headers.get("X-Real-IP")
         if real_ip:
             return real_ip.strip()
@@ -78,9 +107,10 @@ def create_app(
     http: httpx.AsyncClient,
 ) -> FastAPI:
     app = FastAPI(title="LexicRo demo", docs_url=None, redoc_url=None, openapi_url=None)
-    app.state.settings = settings
-    app.state.heroes = heroes
-    app.state.clock = clock
+    # Only app.state.http and app.state.throttle are read anywhere (routes
+    # close over settings/heroes/clock directly) -- app.state.http is also
+    # reassigned by a test, which is why it stays on state rather than being
+    # captured in a closure too.
     app.state.http = http
     app.state.throttle = Throttle(clock)
 
@@ -133,9 +163,7 @@ def create_app(
             if not isinstance(text, str):
                 raise ValueError
         except Exception:
-            return JSONResponse(
-                {"error": t(lang, "err_unavailable")}, status_code=400
-            )
+            return _error(lang, "bad_input")
 
         # 2. the cap -- T-2. Server-side is what counts.
         if len(text) > settings.max_chars:
@@ -160,8 +188,16 @@ def create_app(
                 _log("upstream", sid=sid, ip=ip)
                 return JSONResponse(await analyze(app.state.http, settings, text))
             except UpstreamError as exc:
-                # 6. never forward the upstream body -- T-6
-                kind = exc.kind if exc.kind in ("quota", "timeout") else "unavailable"
+                # 6. never forward the upstream body -- T-6. bad_request is a
+                # caller-caused rejection, not an outage, and must not be
+                # reported as one -- map it to our own bad_input copy rather
+                # than folding it into "unavailable".
+                if exc.kind == "bad_request":
+                    kind = "bad_input"
+                elif exc.kind in ("quota", "timeout"):
+                    kind = exc.kind
+                else:
+                    kind = "unavailable"
                 return _error(lang, kind)
 
     @app.get("/healthz")
@@ -172,11 +208,22 @@ def create_app(
             "live_model_version": None,
         }
         try:
-            live = (await info(app.state.http, settings)).get("model_version")
+            # Same semaphore as /api/analyze: without it, /healthz is an
+            # unthrottled outbound amplifier -- N concurrent hits would open
+            # N upstream connections with a 10s timeout each.
+            async with app.state.semaphore:
+                live_info = await info(app.state.http, settings)
+            live = live_info.get("model_version") if isinstance(live_info, dict) else None
             body["live_model_version"] = live
             if live and live != heroes.model_version:
                 body["status"] = "degraded"
                 body["reason"] = "hero fixture was generated under a different model_version"
+            elif not isinstance(live_info, dict):
+                # info() returned something we can't read a version out of.
+                # A health endpoint must not raise just because the thing it
+                # monitors misbehaved -- report degraded instead.
+                body["status"] = "degraded"
+                body["reason"] = "upstream returned an unexpected shape"
         except UpstreamError:
             body["status"] = "degraded"
             body["reason"] = "upstream unreachable"
