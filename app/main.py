@@ -203,7 +203,7 @@ def create_app(
         )
         return (s.sid if s else None), (s.lang if s else "en")
 
-    @app.get("/")
+    @app.api_route("/", methods=["GET", "HEAD"])
     def index(request: Request, lang: str | None = None):
         existing_sid, existing_lang = _session_lang(request)
         chosen = normalise_lang(lang) if lang else existing_lang
@@ -312,7 +312,7 @@ def create_app(
             body["reason"] = "upstream unreachable"
         return body
 
-    @app.get("/healthz")
+    @app.api_route("/healthz", methods=["GET", "HEAD"])
     async def healthz():
         # C2: /healthz is public, uncookied, and unthrottled by design (a
         # monitor must be able to call it without a session) -- which also

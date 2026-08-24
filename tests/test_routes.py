@@ -141,6 +141,37 @@ def test_healthz_returns_503_when_the_model_moves(client, upstream):
     assert body["version_drift"] is True
 
 
+def test_head_healthz_returns_200_in_the_normal_case(client):
+    """UptimeRobot-class monitors default to HEAD. FastAPI's @app.get() only
+    wires up GET (unlike Starlette's bare Route), so this must be exercised
+    explicitly rather than assumed to piggyback on the GET test above."""
+    r = client.head("/healthz")
+    assert r.status_code == 200
+    assert r.text == ""
+
+
+def test_head_healthz_returns_503_on_drift(client, upstream):
+    """The status code is the entire signal a HEAD-only monitor gets -- it
+    never sees the body -- so drift must still flip it to 503 over HEAD."""
+    import httpx
+
+    def drifted(request):
+        upstream.calls += 1
+        return httpx.Response(200, json={"model_version": "phase3-different"})
+
+    client.app.state.http = httpx.AsyncClient(transport=httpx.MockTransport(drifted))
+    r = client.head("/healthz")
+    assert r.status_code == 503
+    assert r.text == ""
+
+
+def test_head_index_returns_200(client):
+    """A public web page answering 405 to HEAD is wrong regardless of
+    /healthz -- a monitor could be pointed at either."""
+    r = client.head("/")
+    assert r.status_code == 200
+
+
 def test_healthz_stays_200_when_upstream_is_unreachable(client):
     """Transient upstream trouble is not this service's outage -- the
     upstream API has its own monitoring -- so it must not page."""

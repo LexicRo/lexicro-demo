@@ -28,12 +28,20 @@ function renderTokens(container, data) {
       row.insertCell().textContent = Object.entries(token.feats || {})
         .map(([k, v]) => `${k}=${v}`).join("|");
       row.insertCell().textContent = token.source || "";
-      if (token.candidates && token.candidates.length > 1) {
+      const seen = new Set();
+      const uniqueCandidates = [];
+      for (const c of token.candidates || []) {
+        const key = c.lemma + String.fromCharCode(31) + c.upos;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        uniqueCandidates.push(c);
+      }
+      if (uniqueCandidates.length > 1) {
         const note = table.insertRow().insertCell();
         note.colSpan = 5;
         note.className = "candidates";
         note.textContent = LABELS.candidates + ": " +
-          token.candidates.map((c) => `${c.lemma} (${c.upos})`).join(", ");
+          uniqueCandidates.map((c) => `${c.lemma} (${c.upos})`).join(", ");
       }
     }
   }
