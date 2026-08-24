@@ -146,7 +146,7 @@ body {
   font-weight: 650;
   letter-spacing: -0.022em;
 }
-.tagline { margin: 0.35rem 0 0; color: var(--muted); max-width: 52ch; text-wrap: balance; }
+.tagline { margin: 0.35rem 0 0; color: var(--muted); max-width: 62ch; text-wrap: balance; }
 
 .controls { display: flex; flex-wrap: wrap; gap: 0.55rem; align-items: center; }
 
@@ -199,7 +199,7 @@ h2 {
   font-weight: 640;
   letter-spacing: -0.018em;
 }
-.lede { margin: 0 0 2rem; color: var(--muted); max-width: 68ch; text-wrap: pretty; }
+.lede { margin: 0 0 2rem; color: var(--muted); max-width: 76ch; text-wrap: balance; }
 
 .pair { margin: 0 0 2.25rem; }
 
@@ -464,7 +464,7 @@ footer {
   color: var(--muted);
   font-size: 0.86rem;
 }
-footer p { margin: 0 0 0.4rem; max-width: 72ch; text-wrap: pretty; }
+footer p { margin: 0 0 0.4rem; max-width: 88ch; text-wrap: balance; }
 footer a { color: var(--ink); text-decoration-color: var(--hairline); }
 .links { display: flex; gap: 0.6rem; }
 
