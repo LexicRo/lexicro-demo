@@ -1,16 +1,569 @@
 {
-  "model_version": "unset",
-  "generated_at": "unset",
+  "model_version": "phase2-baseline-0.1",
+  "generated_at": "2026-08-24",
   "pairs": [
     {
       "form": "sare",
-      "a": {"text": "Pune sare în mâncare.", "analysis": {}},
-      "b": {"text": "Pisica sare pe masă.", "analysis": {}}
+      "a": {
+        "text": "Pune sare în mâncare.",
+        "analysis": {
+          "model_version": "phase2-baseline-0.1",
+          "truncated": false,
+          "sentences": [
+            {
+              "tokens": [
+                {
+                  "form": "Pune",
+                  "lemma": "pune",
+                  "upos": "VERB",
+                  "feats": {
+                    "Mood": "Ind",
+                    "Number": "Sing",
+                    "Person": "3",
+                    "Tense": "Pres",
+                    "VerbForm": "Fin"
+                  },
+                  "source": "lexicon",
+                  "candidates": [
+                    {
+                      "lemma": "pune",
+                      "upos": "VERB",
+                      "feats": {
+                        "Mood": "Ind",
+                        "Number": "Sing",
+                        "Person": "3",
+                        "Tense": "Pres",
+                        "VerbForm": "Fin"
+                      }
+                    },
+                    {
+                      "lemma": "pune",
+                      "upos": "VERB",
+                      "feats": {
+                        "Mood": "Imp",
+                        "Number": "Sing",
+                        "Person": "2",
+                        "VerbForm": "Fin"
+                      }
+                    },
+                    {
+                      "lemma": "pune",
+                      "upos": "VERB",
+                      "feats": {
+                        "Tense": "Pres",
+                        "VerbForm": "Inf"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "form": "sare",
+                  "lemma": "sare",
+                  "upos": "NOUN",
+                  "feats": {
+                    "Case": "Acc,Nom",
+                    "Definite": "Ind",
+                    "Gender": "Fem",
+                    "Number": "Sing"
+                  },
+                  "source": "lexicon",
+                  "candidates": [
+                    {
+                      "lemma": "sare",
+                      "upos": "NOUN",
+                      "feats": {
+                        "Case": "Acc,Nom",
+                        "Definite": "Ind",
+                        "Gender": "Fem",
+                        "Number": "Sing"
+                      }
+                    },
+                    {
+                      "lemma": "sări",
+                      "upos": "VERB",
+                      "feats": {
+                        "Mood": "Ind",
+                        "Number": "Sing",
+                        "Person": "3",
+                        "Tense": "Pres",
+                        "VerbForm": "Fin"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "form": "în",
+                  "lemma": "în",
+                  "upos": "ADP",
+                  "feats": {
+                    "AdpType": "Prep",
+                    "Case": "Acc"
+                  },
+                  "source": "lexicon"
+                },
+                {
+                  "form": "mâncare",
+                  "lemma": "mâncare",
+                  "upos": "NOUN",
+                  "feats": {
+                    "Case": "Acc,Nom",
+                    "Definite": "Ind",
+                    "Gender": "Fem",
+                    "Number": "Sing"
+                  },
+                  "source": "lexicon"
+                },
+                {
+                  "form": ".",
+                  "lemma": ".",
+                  "upos": "PUNCT",
+                  "feats": {},
+                  "source": "model"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "b": {
+        "text": "Pisica sare pe masă.",
+        "analysis": {
+          "model_version": "phase2-baseline-0.1",
+          "truncated": false,
+          "sentences": [
+            {
+              "tokens": [
+                {
+                  "form": "Pisica",
+                  "lemma": "pisică",
+                  "upos": "NOUN",
+                  "feats": {
+                    "Case": "Acc,Nom",
+                    "Definite": "Def",
+                    "Gender": "Fem",
+                    "Number": "Sing"
+                  },
+                  "source": "lexicon"
+                },
+                {
+                  "form": "sare",
+                  "lemma": "sări",
+                  "upos": "VERB",
+                  "feats": {
+                    "Mood": "Ind",
+                    "Number": "Sing",
+                    "Person": "3",
+                    "Tense": "Pres",
+                    "VerbForm": "Fin"
+                  },
+                  "source": "lexicon",
+                  "candidates": [
+                    {
+                      "lemma": "sare",
+                      "upos": "NOUN",
+                      "feats": {
+                        "Case": "Acc,Nom",
+                        "Definite": "Ind",
+                        "Gender": "Fem",
+                        "Number": "Sing"
+                      }
+                    },
+                    {
+                      "lemma": "sări",
+                      "upos": "VERB",
+                      "feats": {
+                        "Mood": "Ind",
+                        "Number": "Sing",
+                        "Person": "3",
+                        "Tense": "Pres",
+                        "VerbForm": "Fin"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "form": "pe",
+                  "lemma": "pe",
+                  "upos": "ADP",
+                  "feats": {
+                    "AdpType": "Prep",
+                    "Case": "Acc"
+                  },
+                  "source": "lexicon"
+                },
+                {
+                  "form": "masă",
+                  "lemma": "masă",
+                  "upos": "NOUN",
+                  "feats": {
+                    "Case": "Acc,Nom",
+                    "Definite": "Ind",
+                    "Gender": "Fem",
+                    "Number": "Sing"
+                  },
+                  "source": "lexicon",
+                  "candidates": [
+                    {
+                      "lemma": "masa",
+                      "upos": "VERB",
+                      "feats": {
+                        "Mood": "Ind",
+                        "Number": "Sing",
+                        "Person": "3",
+                        "Tense": "Past",
+                        "VerbForm": "Fin"
+                      }
+                    },
+                    {
+                      "lemma": "masă",
+                      "upos": "NOUN",
+                      "feats": {
+                        "Case": "Acc,Nom",
+                        "Definite": "Ind",
+                        "Gender": "Fem",
+                        "Number": "Sing"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "form": ".",
+                  "lemma": ".",
+                  "upos": "PUNCT",
+                  "feats": {},
+                  "source": "model"
+                }
+              ]
+            }
+          ]
+        }
+      }
     },
     {
       "form": "port",
-      "a": {"text": "Constanța are un port mare.", "analysis": {}},
-      "b": {"text": "Eu port o cămașă albă.", "analysis": {}}
+      "a": {
+        "text": "Constanța are un port mare.",
+        "analysis": {
+          "model_version": "phase2-baseline-0.1",
+          "truncated": false,
+          "sentences": [
+            {
+              "tokens": [
+                {
+                  "form": "Constanța",
+                  "lemma": "Constanța",
+                  "upos": "PROPN",
+                  "feats": {},
+                  "source": "model"
+                },
+                {
+                  "form": "are",
+                  "lemma": "avea",
+                  "upos": "VERB",
+                  "feats": {
+                    "Mood": "Ind",
+                    "Number": "Sing",
+                    "Person": "3",
+                    "Tense": "Pres",
+                    "VerbForm": "Fin"
+                  },
+                  "source": "lexicon",
+                  "candidates": [
+                    {
+                      "lemma": "ara",
+                      "upos": "VERB",
+                      "feats": {
+                        "Mood": "Sub",
+                        "Person": "3",
+                        "Tense": "Pres",
+                        "VerbForm": "Fin"
+                      }
+                    },
+                    {
+                      "lemma": "avea",
+                      "upos": "VERB",
+                      "feats": {
+                        "Mood": "Ind",
+                        "Number": "Sing",
+                        "Person": "3",
+                        "Tense": "Pres",
+                        "VerbForm": "Fin"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "form": "un",
+                  "lemma": "un",
+                  "upos": "DET",
+                  "feats": {
+                    "Case": "Acc,Nom",
+                    "Gender": "Masc",
+                    "Number": "Sing",
+                    "PronType": "Ind"
+                  },
+                  "source": "lexicon"
+                },
+                {
+                  "form": "port",
+                  "lemma": "port",
+                  "upos": "NOUN",
+                  "feats": {
+                    "Definite": "Ind",
+                    "Gender": "Masc",
+                    "Number": "Sing"
+                  },
+                  "source": "lexicon",
+                  "candidates": [
+                    {
+                      "lemma": "port",
+                      "upos": "NOUN",
+                      "feats": {
+                        "Definite": "Ind",
+                        "Gender": "Masc",
+                        "Number": "Sing"
+                      }
+                    },
+                    {
+                      "lemma": "purta",
+                      "upos": "VERB",
+                      "feats": {
+                        "Mood": "Ind",
+                        "Number": "Sing",
+                        "Person": "1",
+                        "Tense": "Pres",
+                        "VerbForm": "Fin"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "form": "mare",
+                  "lemma": "mare",
+                  "upos": "ADJ",
+                  "feats": {
+                    "Definite": "Ind",
+                    "Degree": "Pos",
+                    "Number": "Sing"
+                  },
+                  "source": "lexicon",
+                  "candidates": [
+                    {
+                      "lemma": "mare",
+                      "upos": "ADJ",
+                      "feats": {
+                        "Case": "Acc,Nom",
+                        "Definite": "Ind",
+                        "Degree": "Pos",
+                        "Gender": "Fem",
+                        "Number": "Sing"
+                      }
+                    },
+                    {
+                      "lemma": "mare",
+                      "upos": "ADJ",
+                      "feats": {
+                        "Definite": "Ind",
+                        "Degree": "Pos",
+                        "Gender": "Masc",
+                        "Number": "Sing"
+                      }
+                    },
+                    {
+                      "lemma": "mare",
+                      "upos": "NOUN",
+                      "feats": {
+                        "Case": "Acc,Nom",
+                        "Definite": "Ind",
+                        "Gender": "Fem",
+                        "Number": "Sing"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "form": ".",
+                  "lemma": ".",
+                  "upos": "PUNCT",
+                  "feats": {},
+                  "source": "model"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "b": {
+        "text": "Eu port o cămașă albă.",
+        "analysis": {
+          "model_version": "phase2-baseline-0.1",
+          "truncated": false,
+          "sentences": [
+            {
+              "tokens": [
+                {
+                  "form": "Eu",
+                  "lemma": "eu",
+                  "upos": "PRON",
+                  "feats": {
+                    "Case": "Nom",
+                    "Number": "Sing",
+                    "Person": "1",
+                    "PronType": "Prs",
+                    "Strength": "Strong"
+                  },
+                  "source": "lexicon",
+                  "candidates": [
+                    {
+                      "lemma": "eu",
+                      "upos": "NOUN",
+                      "feats": {
+                        "Definite": "Ind",
+                        "Gender": "Masc",
+                        "Number": "Sing"
+                      }
+                    },
+                    {
+                      "lemma": "eu",
+                      "upos": "PRON",
+                      "feats": {
+                        "Case": "Nom",
+                        "Number": "Sing",
+                        "Person": "1",
+                        "PronType": "Prs",
+                        "Strength": "Strong"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "form": "port",
+                  "lemma": "purta",
+                  "upos": "VERB",
+                  "feats": {
+                    "Mood": "Ind",
+                    "Number": "Sing",
+                    "Person": "1",
+                    "Tense": "Pres",
+                    "VerbForm": "Fin"
+                  },
+                  "source": "lexicon",
+                  "candidates": [
+                    {
+                      "lemma": "port",
+                      "upos": "NOUN",
+                      "feats": {
+                        "Definite": "Ind",
+                        "Gender": "Masc",
+                        "Number": "Sing"
+                      }
+                    },
+                    {
+                      "lemma": "purta",
+                      "upos": "VERB",
+                      "feats": {
+                        "Mood": "Ind",
+                        "Number": "Sing",
+                        "Person": "1",
+                        "Tense": "Pres",
+                        "VerbForm": "Fin"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "form": "o",
+                  "lemma": "un",
+                  "upos": "DET",
+                  "feats": {
+                    "Case": "Acc,Nom",
+                    "Gender": "Fem",
+                    "Number": "Sing",
+                    "PronType": "Ind"
+                  },
+                  "source": "lexicon",
+                  "candidates": [
+                    {
+                      "lemma": "el",
+                      "upos": "PRON",
+                      "feats": {
+                        "Case": "Acc",
+                        "Gender": "Fem",
+                        "Number": "Sing",
+                        "Person": "3",
+                        "PronType": "Prs",
+                        "Strength": "Weak"
+                      }
+                    },
+                    {
+                      "lemma": "o",
+                      "upos": "INTJ",
+                      "feats": {}
+                    },
+                    {
+                      "lemma": "o",
+                      "upos": "PART",
+                      "feats": {
+                        "Tense": "Fut"
+                      }
+                    },
+                    {
+                      "lemma": "un",
+                      "upos": "DET",
+                      "feats": {
+                        "Case": "Acc,Nom",
+                        "Gender": "Fem",
+                        "Number": "Sing",
+                        "PronType": "Ind"
+                      }
+                    },
+                    {
+                      "lemma": "vrea",
+                      "upos": "AUX",
+                      "feats": {
+                        "Number": "Sing",
+                        "Person": "3"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "form": "cămașă",
+                  "lemma": "cămașă",
+                  "upos": "NOUN",
+                  "feats": {
+                    "Case": "Acc,Nom",
+                    "Definite": "Ind",
+                    "Gender": "Fem",
+                    "Number": "Sing"
+                  },
+                  "source": "model"
+                },
+                {
+                  "form": "albă",
+                  "lemma": "alb",
+                  "upos": "ADJ",
+                  "feats": {
+                    "Case": "Acc,Nom",
+                    "Definite": "Ind",
+                    "Degree": "Pos",
+                    "Gender": "Fem",
+                    "Number": "Sing"
+                  },
+                  "source": "lexicon"
+                },
+                {
+                  "form": ".",
+                  "lemma": ".",
+                  "upos": "PUNCT",
+                  "feats": {},
+                  "source": "model"
+                }
+              ]
+            }
+          ]
+        }
+      }
     }
   ]
 }
