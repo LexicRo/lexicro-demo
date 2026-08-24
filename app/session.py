@@ -13,12 +13,17 @@ from hashlib import sha256
 
 COOKIE_NAME = "lxd"
 LANGUAGES = ("en", "ro")
+# "auto" means follow the OS. Stored server-side in the cookie rather than in
+# localStorage so the template can stamp data-theme on <html> in the first
+# byte of the response -- a client-side read always flashes the wrong theme.
+THEMES = ("auto", "light", "dark")
 
 
 @dataclass(frozen=True)
 class Session:
     sid: str
     lang: str
+    theme: str
     issued_at: float
 
 
@@ -38,10 +43,21 @@ def normalise_lang(lang: str | None) -> str:
     return lang if lang in LANGUAGES else "en"
 
 
-def issue(secret: str, lang: str, now: float, sid: str | None = None) -> str:
+def normalise_theme(theme: str | None) -> str:
+    return theme if theme in THEMES else "auto"
+
+
+def issue(
+    secret: str,
+    lang: str,
+    now: float,
+    sid: str | None = None,
+    theme: str | None = None,
+) -> str:
     body = {
         "sid": sid or secrets.token_urlsafe(16),
         "lang": normalise_lang(lang),
+        "thm": normalise_theme(theme),
         "iat": now,
     }
     payload = _b64(json.dumps(body, separators=(",", ":")).encode())
@@ -63,4 +79,9 @@ def parse(secret: str, raw: str | None, now: float, max_age: float) -> Session |
     # 60s of slack for clock skew between issue and parse
     if now - issued_at > max_age or now < issued_at - 60:
         return None
-    return Session(sid=sid, lang=normalise_lang(body.get("lang")), issued_at=issued_at)
+    return Session(
+        sid=sid,
+        lang=normalise_lang(body.get("lang")),
+        theme=normalise_theme(body.get("thm")),
+        issued_at=issued_at,
+    )

@@ -21,8 +21,8 @@ from fastapi.templating import Jinja2Templates
 
 from .config import Settings, load_settings
 from .heroes import Heroes, load, lookup
-from .session import COOKIE_NAME, issue, normalise_lang, parse
-from .strings import STRINGS, t
+from .session import COOKIE_NAME, issue, normalise_lang, normalise_theme, parse
+from .strings import FEATURE_FAMILY, GLOSSES, STRINGS, t
 from .throttle import Throttle
 from .upstream import UpstreamError, analyze, info
 
@@ -195,19 +195,32 @@ def create_app(
     app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
     def _session_lang(request: Request) -> tuple[str | None, str]:
-        s = parse(
+        s = _session(request)
+        return (s.sid if s else None), (s.lang if s else "en")
+
+    def _session(request: Request):
+        return parse(
             settings.session_secret,
             request.cookies.get(COOKIE_NAME),
             clock(),
             settings.session_max_age_s,
         )
-        return (s.sid if s else None), (s.lang if s else "en")
 
     @app.api_route("/", methods=["GET", "HEAD"])
-    def index(request: Request, lang: str | None = None):
-        existing_sid, existing_lang = _session_lang(request)
-        chosen = normalise_lang(lang) if lang else existing_lang
-        cookie = issue(settings.session_secret, chosen, clock(), sid=existing_sid)
+    def index(request: Request, lang: str | None = None, theme: str | None = None):
+        current = _session(request)
+        existing_sid = current.sid if current else None
+        chosen = normalise_lang(lang) if lang else (current.lang if current else "en")
+        # An explicit ?theme= wins; otherwise keep what the visitor already chose.
+        # Both must carry the existing sid, or switching either one would hand the
+        # visitor a fresh throttle budget.
+        chosen_theme = (
+            normalise_theme(theme) if theme else (current.theme if current else "auto")
+        )
+        cookie = issue(
+            settings.session_secret, chosen, clock(),
+            sid=existing_sid, theme=chosen_theme,
+        )
         response = templates.TemplateResponse(
             request,
             "index.html",
@@ -217,6 +230,9 @@ def create_app(
                 "pairs": heroes.pairs,
                 "max_chars": settings.max_chars,
                 "other_lang": "ro" if chosen == "en" else "en",
+                "theme": chosen_theme,
+                "glosses": GLOSSES[chosen],
+                "families": FEATURE_FAMILY,
             },
         )
         response.set_cookie(

@@ -44,6 +44,13 @@ STRINGS: dict[str, dict[str, str]] = {
         "guide_link": "Read the guide",
         "attribution_link": "Attribution and licences",
         "lang_switch": "Română",
+        "hero_form_label": "one form, two readings",
+        "theme_label": "Appearance",
+        "theme_auto": "Match system",
+        "theme_light": "Light",
+        "theme_dark": "Dark",
+        "lang_en": "English",
+        "lang_ro": "Română",
     },
     "ro": {
         "title": "LexicRo — analiză morfologică pentru limba română",
@@ -74,6 +81,13 @@ STRINGS: dict[str, dict[str, str]] = {
         "guide_link": "Citește ghidul",
         "attribution_link": "Atribuire și licențe",
         "lang_switch": "English",
+        "hero_form_label": "o formă, două citiri",
+        "theme_label": "Aspect",
+        "theme_auto": "Ca sistemul",
+        "theme_light": "Luminos",
+        "theme_dark": "Întunecat",
+        "lang_en": "English",
+        "lang_ro": "Română",
     },
 }
 
@@ -83,3 +97,81 @@ def t(lang: str, key: str) -> str:
     if key not in table:
         raise KeyError(key)
     return table[key]
+
+
+# Plain-language glosses for UD feature values, shown on hover and on tap.
+# Deliberately NOT part of STRINGS: these are a lookup table rather than page
+# copy, and holding them here keeps the key-parity test focused on the copy a
+# translator actually has to maintain.
+#
+# Partial by design. A value with no gloss simply shows no tooltip -- better
+# than inventing a translation for a term whose Romanian equivalent is not
+# obvious. Keyed by the raw "Feature=Value" the API returns.
+GLOSSES: dict[str, dict[str, str]] = {
+    "en": {
+        "Number=Sing": "singular", "Number=Plur": "plural",
+        "Person=1": "first person", "Person=2": "second person", "Person=3": "third person",
+        "Gender=Masc": "masculine", "Gender=Fem": "feminine", "Gender=Neut": "neuter",
+        "Case=Nom": "nominative", "Case=Acc": "accusative",
+        "Case=Acc,Nom": "accusative or nominative — the form does not distinguish them",
+        "Case=Dat,Gen": "dative or genitive — the form does not distinguish them",
+        "Case=Voc": "vocative",
+        "Definite=Def": "definite — carries the article",
+        "Definite=Ind": "indefinite",
+        "Tense=Pres": "present", "Tense=Past": "past", "Tense=Imp": "imperfect",
+        "Tense=Fut": "future", "Tense=Pqp": "pluperfect",
+        "Mood=Ind": "indicative", "Mood=Sub": "subjunctive",
+        "Mood=Imp": "imperative", "Mood=Cnd": "conditional",
+        "VerbForm=Fin": "finite verb", "VerbForm=Inf": "infinitive",
+        "VerbForm=Part": "participle", "VerbForm=Ger": "gerund",
+        "Degree=Pos": "positive degree", "Degree=Cmp": "comparative", "Degree=Sup": "superlative",
+        "PronType=Prs": "personal pronoun", "PronType=Ind": "indefinite",
+        "PronType=Int,Rel": "interrogative or relative", "PronType=Dem": "demonstrative",
+        "AdpType=Prep": "preposition",
+        "Strength=Strong": "strong form", "Strength=Weak": "weak (clitic) form",
+        "Poss=Yes": "possessive", "Reflex=Yes": "reflexive",
+        "NumType=Card": "cardinal number", "NumType=Ord": "ordinal number",
+        "NumForm=Word": "written as a word", "NumForm=Digit": "written as digits",
+        "Polarity=Pos": "affirmative", "Polarity=Neg": "negative",
+    },
+    "ro": {
+        "Number=Sing": "singular", "Number=Plur": "plural",
+        "Person=1": "persoana întâi", "Person=2": "persoana a doua", "Person=3": "persoana a treia",
+        "Gender=Masc": "masculin", "Gender=Fem": "feminin", "Gender=Neut": "neutru",
+        "Case=Nom": "nominativ", "Case=Acc": "acuzativ",
+        "Case=Acc,Nom": "acuzativ sau nominativ — forma nu le distinge",
+        "Case=Dat,Gen": "dativ sau genitiv — forma nu le distinge",
+        "Case=Voc": "vocativ",
+        "Definite=Def": "articulat hotărât",
+        "Definite=Ind": "nearticulat",
+        "Tense=Pres": "prezent", "Tense=Past": "perfect", "Tense=Imp": "imperfect",
+        "Tense=Fut": "viitor", "Tense=Pqp": "mai mult ca perfect",
+        "Mood=Ind": "indicativ", "Mood=Sub": "conjunctiv",
+        "Mood=Imp": "imperativ", "Mood=Cnd": "condițional",
+        "VerbForm=Fin": "verb predicativ", "VerbForm=Inf": "infinitiv",
+        "VerbForm=Part": "participiu", "VerbForm=Ger": "gerunziu",
+        "Degree=Pos": "grad pozitiv", "Degree=Cmp": "comparativ", "Degree=Sup": "superlativ",
+        "PronType=Prs": "pronume personal", "PronType=Ind": "nehotărât",
+        "PronType=Int,Rel": "interogativ sau relativ", "PronType=Dem": "demonstrativ",
+        "AdpType=Prep": "prepoziție",
+        "Strength=Strong": "formă accentuată", "Strength=Weak": "formă neaccentuată",
+        "Poss=Yes": "posesiv", "Reflex=Yes": "reflexiv",
+        "NumType=Card": "numeral cardinal", "NumType=Ord": "numeral ordinal",
+        "NumForm=Word": "scris în litere", "NumForm=Digit": "scris cu cifre",
+        "Polarity=Pos": "afirmativ", "Polarity=Neg": "negativ",
+    },
+}
+
+# Which family a feature belongs to, driving chip colour. Encodes something true
+# about the grammar rather than decorating: verbal features describe the event,
+# agreement features describe how the word agrees with its neighbours, and
+# lexical features describe the word's own type.
+FEATURE_FAMILY: dict[str, str] = {
+    "Mood": "verbal", "Tense": "verbal", "VerbForm": "verbal", "Person": "verbal",
+    "Aspect": "verbal", "Voice": "verbal",
+    "Case": "agreement", "Gender": "agreement", "Number": "agreement",
+    "Definite": "agreement", "Degree": "agreement",
+    "PronType": "lexical", "AdpType": "lexical", "NumType": "lexical",
+    "NumForm": "lexical", "Poss": "lexical", "Reflex": "lexical",
+    "Strength": "lexical", "Polarity": "lexical", "Variant": "lexical",
+}

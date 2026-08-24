@@ -2,24 +2,31 @@
 {% block content %}
 <section class="hero">
   <h2>{{ s.hero_heading }}</h2>
-  <p>{{ s.hero_explain }}</p>
+  <p class="lede">{{ s.hero_explain }}</p>
+
   {% for pair in pairs %}
-  <div class="pair" data-form="{{ pair.form }}">
-    {% for side in ['a', 'b'] %}
-    <figure class="panel">
-      <figcaption>{{ pair[side].text }}</figcaption>
-      <div class="tokens" data-text="{{ pair[side].text }}"></div>
-    </figure>
-    {% endfor %}
-  </div>
+  <article class="pair" data-form="{{ pair.form }}" style="--stagger: {{ loop.index0 }}">
+    <div class="pair-form">
+      <span class="form-word">{{ pair.form }}</span>
+      <span class="form-note">{{ s.hero_form_label }}</span>
+    </div>
+    <div class="pair-cards">
+      {% for side in ['a', 'b'] %}
+      <figure class="panel reading-{{ side }}">
+        <figcaption>{{ pair[side].text }}</figcaption>
+        <div class="tokens" data-text="{{ pair[side].text }}" data-focus="{{ pair.form }}"></div>
+      </figure>
+      {% endfor %}
+    </div>
+  </article>
   {% endfor %}
 </section>
 
 <section class="analyser">
   <h2>{{ s.analyser_heading }}</h2>
-  <form id="analyse-form">
+  <form id="analyse-form" class="panel">
     <label class="visually-hidden" for="text">{{ s.analyser_heading }}</label>
-    <textarea id="text" maxlength="{{ max_chars }}"
+    <textarea id="text" maxlength="{{ max_chars }}" rows="3"
               placeholder="{{ s.placeholder }}"></textarea>
     <div class="row">
       <span id="counter" data-max="{{ max_chars }}">{{ s.max_chars_hint }}</span>
@@ -27,7 +34,7 @@
     </div>
   </form>
   <div id="result"></div>
-  <button id="json-toggle" hidden aria-pressed="false">{{ s.json_toggle }}</button>
+  <button id="json-toggle" class="ghost" hidden aria-pressed="false">{{ s.json_toggle }}</button>
   <pre id="raw-json" hidden></pre>
 </section>
 
@@ -41,4 +48,6 @@
     "candidates": s.candidates_label, "truncated": s.truncated_note}
    | tojson }}
 </script>
+<script id="glosses" type="application/json">{{ glosses | tojson }}</script>
+<script id="families" type="application/json">{{ families | tojson }}</script>
 {% endblock %}

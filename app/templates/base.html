@@ -1,25 +1,93 @@
 <!doctype html>
-<html lang="{{ lang }}">
+<html lang="{{ lang }}" data-theme="{{ theme }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ s.title }}</title>
+  <meta name="description" content="{{ s.tagline }}">
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-  <header>
-    <h1>{{ s.title }}</h1>
-    <p class="tagline">{{ s.tagline }}</p>
-    <a class="lang" href="/?lang={{ other_lang }}">{{ s.lang_switch }}</a>
+  <!-- Two soft colour fields behind everything. They exist so the glass has
+       something to refract: over a flat background, backdrop-filter is an
+       expensive no-op. -->
+  <div class="ambient" aria-hidden="true">
+    <span class="orb orb-a"></span>
+    <span class="orb orb-b"></span>
+  </div>
+
+  <header class="site-header">
+    <div class="brand">
+      <h1>{{ s.title }}</h1>
+      <p class="tagline">{{ s.tagline }}</p>
+    </div>
+
+    <div class="controls">
+      <nav class="langs" aria-label="{{ s.lang_switch }}">
+        <a class="lang{% if lang == 'en' %} is-current{% endif %}" href="?lang=en"
+           hreflang="en"{% if lang == 'en' %} aria-current="true"{% endif %}>
+          <svg class="flag" viewBox="0 0 60 40" aria-hidden="true" focusable="false">
+            <rect width="60" height="40" fill="#012169"/>
+            <path d="M0 0 60 40M60 0 0 40" stroke="#fff" stroke-width="9"/>
+            <path d="M0 0 60 40M60 0 0 40" stroke="#C8102E" stroke-width="5"/>
+            <path d="M30 0V40M0 20H60" stroke="#fff" stroke-width="15"/>
+            <path d="M30 0V40M0 20H60" stroke="#C8102E" stroke-width="9"/>
+          </svg>
+          <span>{{ s.lang_en }}</span>
+        </a>
+        <a class="lang{% if lang == 'ro' %} is-current{% endif %}" href="?lang=ro"
+           hreflang="ro"{% if lang == 'ro' %} aria-current="true"{% endif %}>
+          <svg class="flag" viewBox="0 0 60 40" aria-hidden="true" focusable="false">
+            <rect width="20" height="40" fill="#002B7F"/>
+            <rect x="20" width="20" height="40" fill="#FCD116"/>
+            <rect x="40" width="20" height="40" fill="#CE1126"/>
+          </svg>
+          <span>{{ s.lang_ro }}</span>
+        </a>
+      </nav>
+
+      <nav class="themes" aria-label="{{ s.theme_label }}">
+        <a class="theme-opt{% if theme == 'auto' %} is-current{% endif %}" href="?theme=auto"
+           title="{{ s.theme_auto }}"{% if theme == 'auto' %} aria-current="true"{% endif %}>
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <circle cx="12" cy="12" r="8.4" fill="none" stroke="currentColor" stroke-width="1.7"/>
+            <path d="M12 3.6a8.4 8.4 0 000 16.8z" fill="currentColor"/>
+          </svg>
+          <span class="visually-hidden">{{ s.theme_auto }}</span>
+        </a>
+        <a class="theme-opt{% if theme == 'light' %} is-current{% endif %}" href="?theme=light"
+           title="{{ s.theme_light }}"{% if theme == 'light' %} aria-current="true"{% endif %}>
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <circle cx="12" cy="12" r="4.4" fill="currentColor"/>
+            <g stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+              <path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2"/>
+              <path d="M5.4 5.4l1.6 1.6M17 17l1.6 1.6M18.6 5.4L17 7M7 17l-1.6 1.6"/>
+            </g>
+          </svg>
+          <span class="visually-hidden">{{ s.theme_light }}</span>
+        </a>
+        <a class="theme-opt{% if theme == 'dark' %} is-current{% endif %}" href="?theme=dark"
+           title="{{ s.theme_dark }}"{% if theme == 'dark' %} aria-current="true"{% endif %}>
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M20.3 14.6A8.6 8.6 0 019.4 3.7a8.7 8.7 0 102.9 16.9 8.7 8.7 0 008-6z" fill="currentColor"/>
+          </svg>
+          <span class="visually-hidden">{{ s.theme_dark }}</span>
+        </a>
+      </nav>
+    </div>
   </header>
+
   <main>{% block content %}{% endblock %}</main>
+
   <footer>
     <p>{{ s.about }}</p>
-    <p>
-      <a href="https://api.lexicro.com/guide">{{ s.guide_link }}</a> ·
+    <p class="links">
+      <a href="https://api.lexicro.com/guide">{{ s.guide_link }}</a>
+      <span aria-hidden="true">·</span>
       <a href="https://api.lexicro.com/attribution">{{ s.attribution_link }}</a>
     </p>
   </footer>
+
   <script src="/static/app.js"></script>
 </body>
 </html>

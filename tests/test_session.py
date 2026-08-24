@@ -53,3 +53,27 @@ def test_sid_survives_a_language_change():
     second = parse(SECRET, raw, now=1001.0, max_age=MAX_AGE)
     assert second.sid == first.sid
     assert second.lang == "ro"
+
+
+def test_theme_roundtrips_and_defaults_to_auto():
+    s = parse(SECRET, issue(SECRET, "en", now=1000.0, theme="dark"), now=1000.0, max_age=MAX_AGE)
+    assert s.theme == "dark"
+    # no theme supplied, and an unrecognised one, both mean "follow the system"
+    assert parse(SECRET, issue(SECRET, "en", now=1000.0), now=1000.0, max_age=MAX_AGE).theme == "auto"
+    assert parse(
+        SECRET, issue(SECRET, "en", now=1000.0, theme="neon"), now=1000.0, max_age=MAX_AGE
+    ).theme == "auto"
+
+
+def test_theme_and_sid_survive_each_other():
+    """Changing theme must not mint a fresh sid -- that would hand the visitor a
+    new throttle budget on every click of the appearance control."""
+    first = parse(SECRET, issue(SECRET, "en", now=1000.0, theme="dark"), now=1000.0, max_age=MAX_AGE)
+    second = parse(
+        SECRET,
+        issue(SECRET, "ro", now=1001.0, sid=first.sid, theme=first.theme),
+        now=1001.0, max_age=MAX_AGE,
+    )
+    assert second.sid == first.sid
+    assert second.theme == "dark"
+    assert second.lang == "ro"

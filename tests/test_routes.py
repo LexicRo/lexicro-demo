@@ -645,3 +645,25 @@ def test_textarea_has_an_associated_label(client):
     r = client.get("/")
     assert 'for="text"' in r.text
     assert r.text.index("<label") < r.text.index('<textarea id="text"')
+
+
+def test_theme_is_stamped_on_the_html_element(client):
+    assert 'data-theme="dark"' in client.get("/?theme=dark").text
+    assert 'data-theme="light"' in client.get("/?theme=light").text
+
+
+def test_theme_persists_across_a_language_switch(client):
+    """The appearance choice must survive changing language, and vice versa."""
+    client.get("/?theme=dark")
+    assert 'data-theme="dark"' in client.get("/?lang=ro").text
+
+
+def test_unknown_theme_falls_back_to_auto(client):
+    assert 'data-theme="auto"' in client.get("/?theme=neon").text
+
+
+def test_both_language_flags_are_offered(client):
+    r = client.get("/")
+    assert 'href="?lang=en"' in r.text and 'href="?lang=ro"' in r.text
+    assert r.text.count("<svg") >= 2
+    assert 'aria-current="true"' in r.text
