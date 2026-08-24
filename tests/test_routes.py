@@ -667,3 +667,23 @@ def test_both_language_flags_are_offered(client):
     assert 'href="?lang=en"' in r.text and 'href="?lang=ro"' in r.text
     assert r.text.count("<svg") >= 2
     assert 'aria-current="true"' in r.text
+
+
+def test_hidden_controls_are_actually_hidden(client):
+    """`button { display: inline-block }` overrode the UA's [hidden] rule, so the
+    raw-JSON toggle was visible before anything had been analysed. Author styles
+    beat the UA sheet, so the reset has to be explicit."""
+    css = client.get("/static/style.css").text
+    assert "[hidden] { display: none !important; }" in css
+    # and the markup still marks them hidden to begin with
+    page = client.get("/").text
+    assert 'id="json-toggle"' in page and "hidden" in page
+
+
+def test_the_two_reading_accents_are_not_reused_for_buttons(client):
+    """--a and --b mean 'first reading' and 'second reading'. Borrowing them for
+    a call to action muddies both the palette and the meaning."""
+    css = client.get("/static/style.css").text
+    button_rule = css.split("button, .button {")[1].split("}")[0]
+    assert "var(--action)" in button_rule
+    assert "var(--a)" not in button_rule and "var(--b)" not in button_rule

@@ -21,10 +21,11 @@
   --shadow:      0 1px 2px rgba(23, 27, 44, 0.05), 0 12px 32px rgba(23, 27, 44, 0.09);
   --a:           #a35d03;   /* reading A */
   --b:           #0c6f66;   /* reading B */
-  --orb-a:       rgba(240, 166, 60, 0.42);
-  --orb-b:       rgba(53, 196, 180, 0.36);
+  --orb-a:       rgba(240, 166, 60, 0.20);
+  --orb-b:       rgba(53, 196, 180, 0.17);
   --focus-ring:  #2f6df0;
-  --on-accent:   #ffffff;   /* text ON the accent gradient */
+  --on-accent:   #ffffff;   /* text ON the action colour */
+  --action:      #14625a;   /* calls to action only */
 
   --fam-verbal:     108 86 214;
   --fam-agreement:  27 110 190;
@@ -52,7 +53,8 @@
     --orb-a:      rgba(240, 166, 60, 0.22);
     --orb-b:      rgba(53, 196, 180, 0.2);
     --focus-ring: #79a8ff;
-    --on-accent:  #10141a;
+    --on-accent:  #08120f;
+    --action:     #3fd3c2;
 
     --fam-verbal:    155 140 250;
     --fam-agreement: 108 176 250;
@@ -75,7 +77,8 @@
   --orb-a:      rgba(240, 166, 60, 0.22);
   --orb-b:      rgba(53, 196, 180, 0.2);
   --focus-ring: #79a8ff;
-  --on-accent:  #10141a;
+  --on-accent:  #08120f;
+  --action:     #3fd3c2;
 
   --fam-verbal:    155 140 250;
   --fam-agreement: 108 176 250;
@@ -86,6 +89,10 @@
 /* ---------- base ---------- */
 
 *, *::before, *::after { box-sizing: border-box; }
+
+/* Author styles beat the UA sheet, so `button { display: inline-block }` was
+   un-hiding elements carrying the hidden attribute. Restore it explicitly. */
+[hidden] { display: none !important; }
 
 html { color-scheme: light dark; }
 :root[data-theme="light"] { color-scheme: light; }
@@ -134,11 +141,12 @@ body {
 }
 .brand h1 {
   margin: 0;
+  text-wrap: balance;
   font-size: clamp(1.35rem, 1.05rem + 1.1vw, 1.9rem);
   font-weight: 650;
   letter-spacing: -0.022em;
 }
-.tagline { margin: 0.35rem 0 0; color: var(--muted); max-width: 46ch; }
+.tagline { margin: 0.35rem 0 0; color: var(--muted); max-width: 52ch; text-wrap: balance; }
 
 .controls { display: flex; flex-wrap: wrap; gap: 0.55rem; align-items: center; }
 
@@ -186,11 +194,12 @@ body {
 .hero { padding-top: 1rem; }
 h2 {
   margin: 0 0 0.4rem;
+  text-wrap: balance;
   font-size: clamp(1.15rem, 1rem + 0.7vw, 1.45rem);
   font-weight: 640;
   letter-spacing: -0.018em;
 }
-.lede { margin: 0 0 2rem; color: var(--muted); max-width: 62ch; }
+.lede { margin: 0 0 2rem; color: var(--muted); max-width: 68ch; text-wrap: pretty; }
 
 .pair { margin: 0 0 2.25rem; }
 
@@ -413,7 +422,7 @@ button, .button {
   border-radius: 999px;
   cursor: pointer;
   color: var(--on-accent);
-  background: linear-gradient(96deg, var(--a), var(--b));
+  background: var(--action);
   text-decoration: none;
   display: inline-block;
   transition: transform 0.15s ease, filter 0.15s ease;
@@ -455,7 +464,7 @@ footer {
   color: var(--muted);
   font-size: 0.86rem;
 }
-footer p { margin: 0 0 0.4rem; max-width: 64ch; }
+footer p { margin: 0 0 0.4rem; max-width: 72ch; text-wrap: pretty; }
 footer a { color: var(--ink); text-decoration-color: var(--hairline); }
 .links { display: flex; gap: 0.6rem; }
 
