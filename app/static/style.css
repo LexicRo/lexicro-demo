@@ -464,7 +464,7 @@ footer {
   color: var(--muted);
   font-size: 0.86rem;
 }
-footer p { margin: 0 0 0.4rem; max-width: 88ch; text-wrap: balance; }
+footer p { margin: 0 0 0.4rem; max-width: 105ch; text-wrap: balance; }
 footer a { color: var(--ink); text-decoration-color: var(--hairline); }
 .links { display: flex; gap: 0.6rem; }
 
