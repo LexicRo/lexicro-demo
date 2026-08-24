@@ -137,8 +137,21 @@ def _is_cross_site(request: Request) -> bool:
     if not origin:
         return False
     parsed = urlsplit(origin)
+
+    # Behind a TLS-terminating proxy this app is reached over plain HTTP, so
+    # request.url.scheme is "http" while the browser's Origin says "https".
+    # Comparing them raw rejects every same-site browser request -- and does so
+    # invisibly to curl, which sends no Origin at all. nginx already supplies
+    # X-Forwarded-Proto; believe it only from a peer we already trust for
+    # X-Real-IP, so a direct caller cannot talk its way past the check.
+    scheme = request.url.scheme
+    if _is_trusted_peer(request):
+        forwarded = request.headers.get("x-forwarded-proto")
+        if forwarded:
+            scheme = forwarded.split(",")[0].strip().lower()
+
     return _origin_tuple(parsed.scheme, parsed.hostname, parsed.port) != _origin_tuple(
-        request.url.scheme, request.url.hostname, request.url.port,
+        scheme, request.url.hostname, request.url.port,
     )
 
 

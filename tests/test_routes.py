@@ -392,19 +392,31 @@ class _FakeURL:
         self.port = port
 
 
+class _FakeClient:
+    def __init__(self, host):
+        self.host = host
+
+
 class _FakeRequest:
-    """A minimal stand-in for Starlette's Request: _is_cross_site only ever
-    touches .headers.get("origin") and .url.{scheme,hostname,port}.
+    """A minimal stand-in for Starlette's Request: _is_cross_site (and, via
+    _is_trusted_peer, _is_cross_site's own forwarded-scheme resolution) only
+    ever touches .headers.get(...), .url.{scheme,hostname,port}, and
+    .client.host.
 
-    Used instead of TestClient for the default-port case below because
-    TestClient derives request.url straight from base_url, so a request
-    made through it can never produce a request.url.port that disagrees
-    with the Origin header the way a real `Host: host:443` header can --
-    the very mismatch this test exists to exercise."""
+    Used instead of TestClient for the default-port and forwarded-scheme
+    cases below because TestClient derives request.url straight from
+    base_url, so a request made through it can never produce a
+    request.url.port that disagrees with the Origin header the way a real
+    `Host: host:443` header can, nor an X-Forwarded-Proto that disagrees
+    with request.url.scheme independently of the peer address -- the very
+    mismatches these tests exist to exercise."""
 
-    def __init__(self, origin, scheme, hostname, port):
+    def __init__(self, origin, scheme, hostname, port, extra_headers=None, client_host=None):
         self.headers = {} if origin is None else {"origin": origin}
+        if extra_headers:
+            self.headers.update(extra_headers)
         self.url = _FakeURL(scheme, hostname, port)
+        self.client = _FakeClient(client_host) if client_host is not None else None
 
 
 def test_origin_omitting_default_port_matches_host_carrying_it():
@@ -420,6 +432,115 @@ def test_origin_omitting_default_port_matches_host_carrying_it():
         port=443,
     )
     assert _is_cross_site(request) is False
+
+
+def test_forwarded_proto_from_a_trusted_peer_resolves_the_live_bug():
+    """The exact live failure: nginx terminates TLS and proxies over plain
+    HTTP, so request.url.scheme is "http" while the browser's Origin is
+    "https". From a peer we trust (loopback/private -- i.e. actually our own
+    reverse proxy) with X-Forwarded-Proto: https, this must be treated as
+    same-site, not rejected."""
+    from app.main import _is_cross_site
+
+    request = _FakeRequest(
+        origin="https://testserver",
+        scheme="http",
+        hostname="testserver",
+        port=None,
+        extra_headers={"x-forwarded-proto": "https"},
+        client_host="10.0.0.5",
+    )
+    assert _is_cross_site(request) is False
+
+
+def test_forwarded_proto_does_not_paper_over_a_genuinely_cross_site_origin():
+    """The forwarded-scheme fix must not weaken the actual cross-site check:
+    a mismatched host is still rejected even once the scheme is corrected."""
+    from app.main import _is_cross_site
+
+    request = _FakeRequest(
+        origin="https://evil.example.com",
+        scheme="http",
+        hostname="testserver",
+        port=None,
+        extra_headers={"x-forwarded-proto": "https"},
+        client_host="10.0.0.5",
+    )
+    assert _is_cross_site(request) is True
+
+
+def test_forwarded_proto_from_an_untrusted_peer_is_ignored():
+    """A caller reaching this process directly (not via nginx) cannot forge
+    X-Forwarded-Proto to talk its way past the check: the raw
+    request.url.scheme wins when the immediate peer isn't loopback/private."""
+    from app.main import _is_cross_site
+
+    request = _FakeRequest(
+        origin="https://testserver",
+        scheme="http",
+        hostname="testserver",
+        port=None,
+        extra_headers={"x-forwarded-proto": "https"},
+        client_host="8.8.8.8",
+    )
+    assert _is_cross_site(request) is True
+
+
+def test_no_forwarded_proto_header_falls_back_to_the_raw_scheme():
+    """When nginx (or any proxy) doesn't send X-Forwarded-Proto at all,
+    behaviour is unchanged from before the fix: request.url.scheme is used
+    directly, even from a trusted peer."""
+    from app.main import _is_cross_site
+
+    request = _FakeRequest(
+        origin="https://testserver",
+        scheme="https",
+        hostname="testserver",
+        port=None,
+        client_host="10.0.0.5",
+    )
+    assert _is_cross_site(request) is False
+
+
+def test_absent_origin_is_allowed_regardless_of_forwarded_proto():
+    """An absent Origin remains allowed unconditionally -- the forwarded-
+    scheme resolution only ever runs to compare against a present Origin, so
+    it must not change this pre-existing behaviour."""
+    from app.main import _is_cross_site
+
+    request = _FakeRequest(
+        origin=None,
+        scheme="http",
+        hostname="testserver",
+        port=None,
+        extra_headers={"x-forwarded-proto": "https"},
+        client_host="10.0.0.5",
+    )
+    assert _is_cross_site(request) is False
+
+
+def test_browser_request_behind_a_tls_terminating_proxy_is_not_rejected(app):
+    """End-to-end reproduction of the live incident through the real route:
+    nginx (peer 10.0.0.1, private/trusted) terminates TLS and proxies to
+    this app over plain HTTP, forwarding X-Forwarded-Proto: https; the
+    browser sends Origin: https://testserver. The session cookie is seeded
+    directly into the jar (rather than obtained via GET /) because a
+    Secure-flagged cookie would otherwise be withheld by httpx over a
+    plain-http base_url, which would mask the assertion below behind an
+    unrelated missing-session 403 -- see the `client` fixture's docstring."""
+    from app.session import issue
+
+    with TestClient(app, base_url="http://testserver", client=("10.0.0.1", 12345)) as c:
+        c.cookies.set(COOKIE_NAME, issue(SETTINGS.session_secret, "en", 1000.0))
+        r = c.post(
+            "/api/analyze",
+            json={"text": "Un text oarecare."},
+            headers={
+                "Origin": "https://testserver",
+                "X-Forwarded-Proto": "https",
+            },
+        )
+        assert r.status_code != 403
 
 
 def test_empty_text_is_rejected_as_bad_input(client, upstream):
