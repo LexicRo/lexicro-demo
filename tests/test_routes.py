@@ -687,3 +687,14 @@ def test_the_two_reading_accents_are_not_reused_for_buttons(client):
     button_rule = css.split("button, .button {")[1].split("}")[0]
     assert "var(--action)" in button_rule
     assert "var(--a)" not in button_rule and "var(--b)" not in button_rule
+
+
+def test_static_assets_are_revalidated_not_heuristically_cached(client):
+    """Starlette's StaticFiles sends ETag and Last-Modified but no
+    Cache-Control, so browsers fall back to heuristic caching and can serve a
+    stale stylesheet without asking. A deployed CSS fix was invisible on reload
+    because of exactly this."""
+    r = client.get("/static/style.css")
+    assert r.status_code == 200
+    assert r.headers.get("cache-control") == "no-cache"
+    assert r.headers.get("etag"), "the ETag is what makes revalidation cheap"

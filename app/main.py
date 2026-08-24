@@ -17,6 +17,26 @@ import httpx
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+
+
+class RevalidatingStatic(StaticFiles):
+    """StaticFiles that asks the browser to revalidate every time.
+
+    Starlette sends ETag and Last-Modified but no Cache-Control, so browsers
+    fall back to HEURISTIC caching and may serve a stale stylesheet without
+    ever asking. That is how a deployed CSS fix can be invisible to the very
+    people who have seen the page before -- exactly the returning visitors an
+    announcement produces.
+
+    `no-cache` does not mean "do not cache"; it means "cache, but revalidate".
+    Paired with the ETag Starlette already sends, an unchanged file costs one
+    conditional request and a 304 with no body.
+    """
+
+    def file_response(self, *args, **kwargs):
+        response = super().file_response(*args, **kwargs)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
 from fastapi.templating import Jinja2Templates
 
 from .config import Settings, load_settings
@@ -192,7 +212,7 @@ def create_app(
     app.state.health_cache = None
 
     templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
-    app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
+    app.mount("/static", RevalidatingStatic(directory=str(BASE_DIR / "static")), name="static")
 
     def _session_lang(request: Request) -> tuple[str | None, str]:
         s = _session(request)
