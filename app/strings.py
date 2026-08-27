@@ -70,6 +70,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "derived_rule_negative": "nu + infinitive",
         "known_wrong": "Known incorrect form — see the note above",
         "resolved_note": "You typed “{typed}” — these are the forms of {lemma}.",
+        "contradiction_card": "The verb contradicts itself here — see the note below",
         "err_not_a_verb": "That does not look like a Romanian verb. Try an infinitive, like a merge."
     },
     "ro": {
@@ -127,6 +128,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "derived_rule_negative": "nu + infinitiv",
         "known_wrong": "Formă greșită cunoscută — vezi nota de mai sus",
         "resolved_note": "Ai scris „{typed}” — acestea sunt formele verbului {lemma}.",
+        "contradiction_card": "Verbul se contrazice aici — vezi nota de mai jos",
         "err_not_a_verb": "Nu pare a fi un verb românesc. Încearcă un infinitiv, de exemplu a merge."
     },
 }

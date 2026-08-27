@@ -286,7 +286,26 @@ function knownWrongForms(data) {
   return wrong;
 }
 
-function moodBlock(name, tenses, scopedNotes, wrongForms) {
+/** The `mood/tense` pairs the response reports as self-contradicting.
+ *
+ * `a ninge` says it has no first person in the present and then supplies
+ * `eu am nins` in the compound tenses. Read from the API's own
+ * `paradigm_contradiction` note (ADR-0029), never computed here.
+ *
+ * Marked per CARD, not per form. `a ninge` would otherwise take upwards of
+ * thirty individual marks across five tenses -- a wall of red, and the same
+ * mistake as the forty-six repetitions of "no such form" removed earlier.
+ */
+function contradictingTenses(data) {
+  for (const note of data.notes || []) {
+    if (note.code === "paradigm_contradiction" && Array.isArray(note.tenses)) {
+      return new Set(note.tenses);
+    }
+  }
+  return new Set();
+}
+
+function moodBlock(name, tenses, scopedNotes, wrongForms, contradicting) {
   const details = document.createElement("details");
   details.className = "cmood";
   details.open = OPEN_BY_DEFAULT.has(name);
@@ -319,7 +338,9 @@ function moodBlock(name, tenses, scopedNotes, wrongForms) {
     const grid = document.createElement("div");
     grid.className = "ctenses";
     for (const n of names) {
-      grid.appendChild(tenseBlock(n, tenses[n], name, wrongForms.get(name + "/" + n)));
+      const card = tenseBlock(n, tenses[n], name, wrongForms.get(name + "/" + n));
+      if (contradicting.has(name + "/" + n)) markContradicting(card);
+      grid.appendChild(card);
     }
     return grid;
   };
@@ -355,6 +376,23 @@ function moodBlock(name, tenses, scopedNotes, wrongForms) {
   return details;
 }
 
+/** One line on the card, rather than a mark on each of its forms.
+ *
+ * Says the verb disagrees with itself and points at the note. It does NOT say
+ * which side is wrong, because the API does not: among the affected verbs
+ * both readings occur -- `a curge` is genuinely third-person-only so its
+ * compound is the error, while `a aporta` is an ordinary transitive whose
+ * PRESENT is the error. Asserting either here would be a correction wearing
+ * a disclosure's clothes.
+ */
+function markContradicting(card) {
+  card.classList.add("is-contradicting");
+  const why = document.createElement("p");
+  why.className = "ccontradiction";
+  why.textContent = C_LABELS.contradiction_card;
+  card.insertBefore(why, card.querySelector(".crow"));
+}
+
 function render(data) {
   const target = document.getElementById("conjugate-result");
   target.replaceChildren();
@@ -367,9 +405,12 @@ function render(data) {
 
   const moods = data.moods || {};
   const wrongForms = knownWrongForms(data);
+  const contradicting = contradictingTenses(data);
   for (const mood of orderedMoods(moods)) {
     target.appendChild(
-      moodBlock(mood, moods[mood], notes.filter((n) => n.scope === mood), wrongForms)
+      moodBlock(
+        mood, moods[mood], notes.filter((n) => n.scope === mood), wrongForms, contradicting
+      )
     );
   }
 

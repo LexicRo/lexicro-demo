@@ -25,6 +25,8 @@
   --orb-b:       rgba(53, 196, 180, 0.17);
   --focus-ring:  #2f6df0;
   --wrong:       #b3261e;   /* known-wrong forms only */
+  --warn:        #8a5a00;   /* the data disagrees with itself */
+  --warn-edge:   rgba(138, 90, 0, 0.45);
   --on-accent:   #ffffff;   /* text ON the action colour */
   --action:      #14625a;   /* calls to action only */
 
@@ -55,6 +57,8 @@
     --orb-b:      rgba(53, 196, 180, 0.2);
     --focus-ring: #79a8ff;
     --wrong:      #ff8a80;
+    --warn:       #f0b357;
+    --warn-edge:  rgba(240, 179, 87, 0.4);
     --on-accent:  #08120f;
     --action:     #3fd3c2;
 
@@ -80,6 +84,8 @@
   --orb-b:      rgba(53, 196, 180, 0.2);
   --focus-ring: #79a8ff;
   --wrong:      #ff8a80;
+  --warn:       #f0b357;
+  --warn-edge:  rgba(240, 179, 87, 0.4);
   --on-accent:  #08120f;
   --action:     #3fd3c2;
 
@@ -700,4 +706,17 @@ footer a { color: var(--ink); text-decoration-color: var(--hairline); }
   margin: -0.4rem 0 1rem;
   font-size: 0.9rem;
   color: var(--muted);
+}
+
+/* A tense card whose forms the verb's own present tense disagrees with.
+   One line on the card, not a mark on each of its thirty-odd forms. Amber
+   rather than the red used for a form we KNOW is wrong: here we know only
+   that two parts of the data disagree, and the colour should not claim more
+   than the words do. */
+.ctense.is-contradicting { border-color: var(--warn-edge); }
+.ccontradiction {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--warn);
 }
