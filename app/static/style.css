@@ -601,13 +601,48 @@ footer a { color: var(--ink); text-decoration-color: var(--hairline); }
    phone and three or four on a desktop, with no breakpoints to maintain. */
 .ctenses {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  /* auto-FILL, not auto-fit. auto-fit collapses the empty tracks, so a mood
+     showing a single tense -- which is now the common case for indicativ --
+     stretches one card across the full width, with a two-word column of forms
+     stranded in a sea of empty space. auto-fill keeps the tracks, so one card
+     occupies one column and the rest of the row stays empty, which is what it
+     should look like. */
+  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
   gap: 0.5rem 1.25rem;
   align-items: start;   /* ragged bottoms, not stretched cards */
   margin-left: 1rem;
 }
-.ctenses .ctense { margin: 0.5rem 0; }
+/* Each tense is a card in the page's own glass language, but a subordinate
+   one: --radius-sm rather than --radius, --hairline rather than --glass-edge,
+   and NO backdrop-filter. A blurred layer per tense would be thirteen of them
+   on one verb -- a real cost for an effect nobody sees, since these sit on
+   content rather than over the background orbs. .panel keeps the full
+   treatment so the difference stays legible. */
+.ctenses .ctense {
+  margin: 0;
+  min-width: 0;
+  padding: 0.7rem 0.85rem 0.75rem;
+  background: var(--glass);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+}
+.ctenses .ctense h4 {
+  margin: 0 0 0.4rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--hairline);
+}
 .ctense-empty { font-size: 0.85rem; opacity: 0.55; margin: 0.1rem 0; }
+
+/* The tenses a mood keeps one click away -- see conjugate.js. */
+.cmore { margin: 0.6rem 0 0; }
+.cmore > summary {
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--muted);
+  padding: 0.25rem 0;
+}
+.cmore > summary:hover { color: var(--ink); }
+.cmore .ctenses { margin-top: 0.5rem; }
 
 /* Stated once for the whole verb, in place of one "no such form" per absent
    person -- forty-six of them for `a ninge` before this. */
@@ -620,6 +655,14 @@ footer a { color: var(--ink); text-decoration-color: var(--hairline); }
 #hero-toggle { margin: 1.5rem 0 0; }
 
 @media (max-width: 30rem) {
-  /* One column anyway on a phone, so card chrome would only cost height. */
-  .ctenses { margin-left: 0; gap: 0.25rem 0; }
+  /* One column on a phone. The cards stay -- they are what separates one
+     tense from the next once they are stacked rather than side by side --
+     but the indent goes and the gap tightens, since chrome costs height
+     here and buys nothing. */
+  .ctenses { margin-left: 0; gap: 0.5rem 0; }
+  .ctenses .ctense { padding: 0.6rem 0.7rem; }
 }
+
+/* Said once on the card when every form in it shares a source. */
+.ctenses .ctense h4 { display: flex; justify-content: space-between; gap: 0.5rem; align-items: baseline; }
+.cderived-all { font-weight: 400; text-transform: none; letter-spacing: 0; }

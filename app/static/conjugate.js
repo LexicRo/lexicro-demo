@@ -67,7 +67,7 @@ function provenanceBanner(verb) {
   return el;
 }
 
-function formCell(entry) {
+function formCell(entry, markSource = true) {
   const cell = document.createElement("div");
   cell.className = "cform";
 
@@ -91,7 +91,11 @@ function formCell(entry) {
   // underlying library. Marking it is what stops this tab reading as a thin
   // wrapper -- and it is the same discipline /analyze's per-token source
   // already applies.
-  if (entry.source === "derived") {
+  //
+  // markSource is false when the whole card shares one source and has said so
+  // once in its heading. Repeating it under all sixteen conditional forms
+  // doubled every row's height to restate a fact the card already carried.
+  if (markSource && entry.source === "derived") {
     const mark = document.createElement("small");
     mark.className = "derived";
     mark.textContent = C_LABELS.derived_label;
@@ -100,13 +104,13 @@ function formCell(entry) {
   return cell;
 }
 
-function personRow(entry) {
+function personRow(entry, markSource = true) {
   const row = document.createElement("div");
   row.className = "crow";
   const pronoun = document.createElement("span");
   pronoun.className = "cpronoun";
   pronoun.textContent = entry.pronoun || "";
-  row.append(pronoun, formCell(entry));
+  row.append(pronoun, formCell(entry, markSource));
   return row;
 }
 
@@ -138,7 +142,19 @@ function tenseBlock(name, entries) {
     return block;
   }
 
-  for (const entry of present) block.appendChild(personRow(entry));
+  // When every form in the card comes from the same place, say so once on the
+  // card instead of once per row. Mixed cards fall back to per-form marks --
+  // the claim is about a form, so it may not be summarised away when the forms
+  // disagree.
+  const allDerived = present.every((e) => e.source === "derived");
+  if (allDerived) {
+    const badge = document.createElement("small");
+    badge.className = "derived cderived-all";
+    badge.textContent = C_LABELS.derived_label;
+    heading.appendChild(badge);
+  }
+
+  for (const entry of present) block.appendChild(personRow(entry, !allDerived));
   return block;
 }
 
@@ -178,17 +194,41 @@ function moodBlock(name, tenses, scopedNotes) {
   // across mood boundaries, `condițional prezent` could land beside
   // `indicativ imperfect` with nothing marking that they are different moods
   // -- tidy to look at and grammatical nonsense.
+  const gridOf = (names) => {
+    const grid = document.createElement("div");
+    grid.className = "ctenses";
+    for (const name of names) grid.appendChild(tenseBlock(name, tenses[name]));
+    return grid;
+  };
+
+  const names = Object.keys(tenses);
+
+  // A mood with more than a couple of tenses shows its present tense and puts
+  // the rest one click away. In practice this fires only on `indicativ`, which
+  // has nine -- the others have two or one -- so the rule is targeted without
+  // being hardcoded to a mood name.
   //
-  // This is what makes indicativ's nine tenses affordable: about three rows of
-  // cards instead of nine stacked blocks. It is also why the tenses are not
-  // individually collapsible -- lexicro.com claims "all moods and tenses", and
-  // showing that compactly beats hiding it behind clicks.
-  const grid = document.createElement("div");
-  grid.className = "ctenses";
-  for (const [tense, entries] of Object.entries(tenses)) {
-    grid.appendChild(tenseBlock(tense, entries));
+  // The grid alone was enough on a desktop (five columns at 1440px) and did
+  // nothing on a phone, where it collapses to one column and the full paradigm
+  // ran to nearly nine screens. Breadth is worth showing where it is free, and
+  // on a narrow screen it is not.
+  if (names.length > 2) {
+    const primary = names.includes("prezent") ? "prezent" : names[0];
+    const rest = names.filter((n) => n !== primary);
+    details.appendChild(gridOf([primary]));
+
+    const more = document.createElement("details");
+    more.className = "cmore";
+    const summary = document.createElement("summary");
+    // The count comes from the data, not from a translated string -- copy in
+    // this project may not contain digits.
+    summary.textContent = C_LABELS.other_tenses + " (" + rest.length + ")";
+    more.appendChild(summary);
+    more.appendChild(gridOf(rest));
+    details.appendChild(more);
+  } else {
+    details.appendChild(gridOf(names));
   }
-  details.appendChild(grid);
   return details;
 }
 
