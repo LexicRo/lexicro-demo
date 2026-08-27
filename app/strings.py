@@ -67,6 +67,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "show_examples": "Show examples",
         "hide_examples": "Hide examples",
         "other_tenses": "Other tenses",
+        "derived_rule_negative": "nu + infinitive",
         "err_not_a_verb": "That does not look like a Romanian verb. Try an infinitive, like a merge."
     },
     "ro": {
@@ -121,6 +122,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "show_examples": "Arată exemplele",
         "hide_examples": "Ascunde exemplele",
         "other_tenses": "Alte timpuri",
+        "derived_rule_negative": "nu + infinitiv",
         "err_not_a_verb": "Nu pare a fi un verb românesc. Încearcă un infinitiv, de exemplu a merge."
     },
 }

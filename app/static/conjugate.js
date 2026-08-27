@@ -67,7 +67,7 @@ function provenanceBanner(verb) {
   return el;
 }
 
-function formCell(entry, markSource = true) {
+function formCell(entry, markSource = true, derivedLabel = null) {
   const cell = document.createElement("div");
   cell.className = "cform";
 
@@ -98,19 +98,19 @@ function formCell(entry, markSource = true) {
   if (markSource && entry.source === "derived") {
     const mark = document.createElement("small");
     mark.className = "derived";
-    mark.textContent = C_LABELS.derived_label;
+    mark.textContent = derivedLabel || C_LABELS.derived_label;
     cell.appendChild(mark);
   }
   return cell;
 }
 
-function personRow(entry, markSource = true) {
+function personRow(entry, markSource = true, derivedLabel = null) {
   const row = document.createElement("div");
   row.className = "crow";
   const pronoun = document.createElement("span");
   pronoun.className = "cpronoun";
   pronoun.textContent = entry.pronoun || "";
-  row.append(pronoun, formCell(entry, markSource));
+  row.append(pronoun, formCell(entry, markSource, derivedLabel));
   return row;
 }
 
@@ -126,7 +126,7 @@ function personRow(entry, markSource = true) {
  * anything DIFFERENT: nothing is invented, and no form is presented as
  * existing when it does not.
  */
-function tenseBlock(name, entries) {
+function tenseBlock(name, entries, mood) {
   const block = document.createElement("div");
   block.className = "ctense";
   const heading = document.createElement("h4");
@@ -146,15 +146,35 @@ function tenseBlock(name, entries) {
   // card instead of once per row. Mixed cards fall back to per-form marks --
   // the claim is about a form, so it may not be summarised away when the forms
   // disagree.
+  // On the negative imperative, say what "derived" MEANS rather than who did
+  // it. That form is composed as `nu` + the infinitive, and for verbs whose
+  // infinitive and third person singular are homographs -- `a merge`,
+  // `a trece` -- it renders identically to the affirmative sitting beside it.
+  // The affirmative is wrong there (verbecc#50: `merge` where `mergi`
+  // belongs), so a reader sees a form they know is broken, sees the same word
+  // repeated below it, and concludes both are broken -- while only the second
+  // carries our name. Naming the rule instead of the author says the form was
+  // built from the infinitive rather than copied from the broken neighbour,
+  // which is exactly the misreading to prevent.
+  //
+  // `derived by LexicRo` stays on the condițional, where it is a real
+  // contribution and nothing around it is wrong.
+  const derivedLabel =
+    mood === "imperativ" && name === "negativ"
+      ? C_LABELS.derived_rule_negative
+      : C_LABELS.derived_label;
+
   const allDerived = present.every((e) => e.source === "derived");
   if (allDerived) {
     const badge = document.createElement("small");
     badge.className = "derived cderived-all";
-    badge.textContent = C_LABELS.derived_label;
+    badge.textContent = derivedLabel;
     heading.appendChild(badge);
   }
 
-  for (const entry of present) block.appendChild(personRow(entry, !allDerived));
+  for (const entry of present) {
+    block.appendChild(personRow(entry, !allDerived, derivedLabel));
+  }
   return block;
 }
 
@@ -197,7 +217,7 @@ function moodBlock(name, tenses, scopedNotes) {
   const gridOf = (names) => {
     const grid = document.createElement("div");
     grid.className = "ctenses";
-    for (const name of names) grid.appendChild(tenseBlock(name, tenses[name]));
+    for (const n of names) grid.appendChild(tenseBlock(n, tenses[n], name));
     return grid;
   };
 

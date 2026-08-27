@@ -796,5 +796,5 @@ def test_the_labels_payload_carries_the_conjugate_copy(client):
     which no Python test would otherwise catch."""
     body = client.get("/").text
     for key in ("prov_predicted", "no_such_form", "derived_label",
-                "notes_heading", "other_tenses"):
+                "notes_heading", "other_tenses", "derived_rule_negative"):
         assert f'"{key}"' in body, key
