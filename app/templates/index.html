@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="hero">
+<section class="hero" id="hero">
   <h2>{{ s.hero_heading }}</h2>
   <p class="lede">{{ s.hero_explain }}</p>
 
@@ -21,6 +21,10 @@
   </article>
   {% endfor %}
 </section>
+
+<button type="button" id="hero-toggle" class="ghost" hidden
+        aria-controls="hero" aria-expanded="false"
+        data-show="{{ s.show_examples }}" data-hide="{{ s.hide_examples }}">{{ s.show_examples }}</button>
 
 <nav class="tabs" aria-label="{{ s.tabs_label }}">
   <span class="tabs-label">{{ s.tabs_label }}</span>

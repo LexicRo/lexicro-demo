@@ -64,6 +64,8 @@ STRINGS: dict[str, dict[str, str]] = {
         "no_such_form": "no such form",
         "derived_label": "derived by LexicRo",
         "notes_heading": "About these forms",
+        "show_examples": "Show examples",
+        "hide_examples": "Hide examples",
         "err_not_a_verb": "That does not look like a Romanian verb. Try an infinitive, like a merge."
     },
     "ro": {
@@ -115,6 +117,8 @@ STRINGS: dict[str, dict[str, str]] = {
         "no_such_form": "formă inexistentă",
         "derived_label": "derivat de LexicRo",
         "notes_heading": "Despre aceste forme",
+        "show_examples": "Arată exemplele",
+        "hide_examples": "Ascunde exemplele",
         "err_not_a_verb": "Nu pare a fi un verb românesc. Încearcă un infinitiv, de exemplu a merge."
     },
 }

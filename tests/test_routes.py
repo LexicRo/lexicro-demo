@@ -780,3 +780,21 @@ def test_index_renders_both_tabs_with_analyse_selected(client):
     assert 'id="pane-conjugate"' in body
     assert 'data-pane="analyse" aria-selected="true"' in body
     assert 'data-pane="conjugate" aria-selected="false"' in body
+
+
+def test_index_renders_the_hero_collapse_toggle(client):
+    """The hero is 1.9 screens and permanent. It collapses once the visitor
+    submits either form -- a moment they caused -- and the toggle is what
+    lets them bring it back."""
+    body = client.get("/").text
+    assert 'id="hero-toggle"' in body
+
+
+def test_the_labels_payload_carries_the_conjugate_copy(client):
+    """conjugate.js reads its copy out of the #labels script tag. A key added
+    to STRINGS but not emitted here renders as `undefined` in the browser,
+    which no Python test would otherwise catch."""
+    body = client.get("/").text
+    for key in ("prov_predicted", "no_such_form", "derived_label",
+                "notes_heading"):
+        assert f'"{key}"' in body, key

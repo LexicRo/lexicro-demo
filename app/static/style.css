@@ -594,3 +594,32 @@ footer a { color: var(--ink); text-decoration-color: var(--hairline); }
   .crow { flex-wrap: wrap; }
   .cpronoun { min-width: 100%; }
 }
+
+/* Tense cards, packed responsively WITHIN a mood. Never across moods: cards
+   flowing over a mood boundary would put condițional beside indicativ with
+   nothing marking the difference. auto-fit + minmax gives one column on a
+   phone and three or four on a desktop, with no breakpoints to maintain. */
+.ctenses {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.5rem 1.25rem;
+  align-items: start;   /* ragged bottoms, not stretched cards */
+  margin-left: 1rem;
+}
+.ctenses .ctense { margin: 0.5rem 0; }
+.ctense-empty { font-size: 0.85rem; opacity: 0.55; margin: 0.1rem 0; }
+
+/* Stated once for the whole verb, in place of one "no such form" per absent
+   person -- forty-six of them for `a ninge` before this. */
+.cabsence {
+  font-size: 0.9rem;
+  opacity: 0.85;
+  margin: 0.75rem 0;
+}
+
+#hero-toggle { margin: 1.5rem 0 0; }
+
+@media (max-width: 30rem) {
+  /* One column anyway on a phone, so card chrome would only cost height. */
+  .ctenses { margin-left: 0; gap: 0.25rem 0; }
+}

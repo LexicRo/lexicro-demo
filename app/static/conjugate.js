@@ -110,13 +110,35 @@ function personRow(entry) {
   return row;
 }
 
+/** One tense, as a card.
+ *
+ * Absent persons are DROPPED rather than printed. `a ninge` used to render
+ * "no such form" forty-six times across the paradigm, which is noise a reader
+ * skips rather than information they take in -- the same fact is stated once,
+ * for the whole verb, by absenceSummary(). A tense with nothing left says so
+ * in a single line rather than becoming an empty card.
+ *
+ * This shows LESS than the API returns, deliberately. It does not show
+ * anything DIFFERENT: nothing is invented, and no form is presented as
+ * existing when it does not.
+ */
 function tenseBlock(name, entries) {
   const block = document.createElement("div");
   block.className = "ctense";
   const heading = document.createElement("h4");
   heading.textContent = name;
   block.appendChild(heading);
-  for (const entry of entries) block.appendChild(personRow(entry));
+
+  const present = entries.filter((e) => e.form !== NO_FORM);
+  if (!present.length) {
+    const none = document.createElement("p");
+    none.className = "ctense-empty";
+    none.textContent = C_LABELS.no_such_form;
+    block.appendChild(none);
+    return block;
+  }
+
+  for (const entry of present) block.appendChild(personRow(entry));
   return block;
 }
 
@@ -151,9 +173,22 @@ function moodBlock(name, tenses, scopedNotes) {
   // beside `merge`, not in a footer they scrolled past.
   for (const note of scopedNotes) details.appendChild(noteEl(note));
 
+  // The tenses of THIS mood, packed responsively. The grid is deliberately
+  // scoped inside the mood and never spans the whole result: if cards flowed
+  // across mood boundaries, `condițional prezent` could land beside
+  // `indicativ imperfect` with nothing marking that they are different moods
+  // -- tidy to look at and grammatical nonsense.
+  //
+  // This is what makes indicativ's nine tenses affordable: about three rows of
+  // cards instead of nine stacked blocks. It is also why the tenses are not
+  // individually collapsible -- lexicro.com claims "all moods and tenses", and
+  // showing that compactly beats hiding it behind clicks.
+  const grid = document.createElement("div");
+  grid.className = "ctenses";
   for (const [tense, entries] of Object.entries(tenses)) {
-    details.appendChild(tenseBlock(tense, entries));
+    grid.appendChild(tenseBlock(tense, entries));
   }
+  details.appendChild(grid);
   return details;
 }
 
