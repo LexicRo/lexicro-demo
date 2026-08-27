@@ -42,7 +42,7 @@ from fastapi.templating import Jinja2Templates
 from .config import Settings, load_settings
 from .heroes import Heroes, load, lookup
 from .session import COOKIE_NAME, issue, normalise_lang, normalise_theme, parse
-from .strings import FEATURE_FAMILY, GLOSSES, STRINGS, t
+from .strings import FEATURE_FAMILY, GLOSSES, MOOD_GLOSSES, STRINGS, t
 from .throttle import Throttle
 from .upstream import UpstreamError, analyze, conjugate, info
 
@@ -261,6 +261,7 @@ def create_app(
                 "theme": chosen_theme,
                 "glosses": GLOSSES[chosen],
                 "families": FEATURE_FAMILY,
+                "mood_glosses": MOOD_GLOSSES[chosen],
             },
         )
         response.set_cookie(

@@ -519,3 +519,78 @@ footer a { color: var(--ink); text-decoration-color: var(--hairline); }
   .lang span { display: none; }   /* flags alone read fine at this width */
   .lang { padding: 0.34rem 0.5rem; }
 }
+
+/* --- The conjugate tab -------------------------------------------------- */
+
+/* The tab strip. Deliberately quiet: it separates two things to try, it is
+   not the page's main navigation, and the hero showcase above it is still
+   entirely /analyze. */
+.tabs {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin: 2.5rem 0 1rem;
+}
+.tabs-label { opacity: 0.7; font-size: 0.9rem; }
+.tablist { display: flex; gap: 0.25rem; }
+.tab {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+  font: inherit;
+  color: inherit;
+  opacity: 0.65;
+  cursor: pointer;
+}
+.tab:hover { opacity: 0.9; }
+.tab.is-selected {
+  opacity: 1;
+  border-color: currentColor;
+  font-weight: 600;
+}
+.conjugator .hint { opacity: 0.7; font-size: 0.9rem; }
+#verb {
+  width: 100%;
+  font: inherit;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.5rem;
+}
+
+.prov { border-radius: 0.5rem; padding: 0.7rem 0.9rem; margin: 1rem 0; }
+/* The loud case. This is the tab's thesis, not a caveat: an API that says
+   when it is guessing is the distinctive thing being demonstrated. */
+.prov-predicted { border: 1px solid currentColor; font-weight: 600; }
+.prov-template { opacity: 0.7; font-size: 0.9rem; padding-left: 0; }
+
+.cmood { margin: 0.75rem 0; }
+.cmood summary { cursor: pointer; display: flex; gap: 0.5rem; align-items: baseline; }
+.cmood-name { font-weight: 600; }
+.cmood summary small { opacity: 0.6; }
+.ctense { margin: 0.75rem 0 0.75rem 1rem; }
+.ctense h4 { margin: 0 0 0.35rem; font-size: 0.85rem; opacity: 0.7; font-weight: 500; }
+.crow { display: flex; gap: 0.6rem; align-items: baseline; padding: 0.15rem 0; }
+.cpronoun { min-width: 3.5rem; opacity: 0.6; font-size: 0.9rem; }
+.cform { display: flex; gap: 0.5rem; align-items: baseline; flex-wrap: wrap; }
+.cword { font-weight: 500; }
+.cform.is-absent { opacity: 0.55; }
+.absent-mark { font-weight: 500; }
+.cform small { font-size: 0.75rem; opacity: 0.65; }
+.derived { font-style: italic; }
+
+.cnote {
+  font-size: 0.85rem;
+  opacity: 0.8;
+  margin: 0.5rem 0 0.75rem 1rem;
+  padding-left: 0.6rem;
+  border-left: 2px solid currentColor;
+}
+.cnotes { margin-top: 1.5rem; }
+.cnotes h3 { font-size: 0.95rem; }
+.cerror { margin: 1rem 0; }
+
+@media (max-width: 30rem) {
+  .crow { flex-wrap: wrap; }
+  .cpronoun { min-width: 100%; }
+}

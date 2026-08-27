@@ -22,7 +22,21 @@
   {% endfor %}
 </section>
 
-<section class="analyser">
+<nav class="tabs" aria-label="{{ s.tabs_label }}">
+  <span class="tabs-label">{{ s.tabs_label }}</span>
+  <div class="tablist" role="tablist">
+    <button type="button" role="tab" class="tab is-selected"
+            data-pane="analyse" aria-selected="true" aria-controls="pane-analyse">
+      {{ s.tab_analyse }}
+    </button>
+    <button type="button" role="tab" class="tab"
+            data-pane="conjugate" aria-selected="false" aria-controls="pane-conjugate">
+      {{ s.tab_conjugate }}
+    </button>
+  </div>
+</nav>
+
+<section class="analyser" id="pane-analyse" role="tabpanel">
   <h2>{{ s.analyser_heading }}</h2>
   <form id="analyse-form" class="panel">
     <label class="visually-hidden" for="text">{{ s.analyser_heading }}</label>
@@ -38,6 +52,21 @@
   <pre id="raw-json" hidden></pre>
 </section>
 
+<section class="conjugator" id="pane-conjugate" role="tabpanel" hidden>
+  <h2>{{ s.conjugate_heading }}</h2>
+  <p class="lede">{{ s.conjugate_lede }}</p>
+  <form id="conjugate-form" class="panel">
+    <label class="visually-hidden" for="verb">{{ s.conjugate_heading }}</label>
+    <input id="verb" type="text" maxlength="64" autocomplete="off"
+           placeholder="{{ s.conjugate_placeholder }}">
+    <div class="row">
+      <span class="hint">{{ s.conjugate_hint }}</span>
+      <button type="submit">{{ s.conjugate_submit }}</button>
+    </div>
+  </form>
+  <div id="conjugate-result"></div>
+</section>
+
 <section class="cta">
   <a class="button" href="https://tally.so/r/GxBBbz">{{ s.cta }}</a>
 </section>
@@ -45,9 +74,13 @@
 <script id="labels" type="application/json">
 {{ {"form": s.col_form, "lemma": s.col_lemma, "upos": s.col_upos,
     "feats": s.col_feats, "source": s.col_source,
-    "candidates": s.candidates_label, "truncated": s.truncated_note}
+    "candidates": s.candidates_label, "truncated": s.truncated_note,
+    "prov_template": s.prov_template, "prov_predicted": s.prov_predicted,
+    "no_such_form": s.no_such_form, "derived_label": s.derived_label,
+    "notes_heading": s.notes_heading}
    | tojson }}
 </script>
+<script id="mood-glosses" type="application/json">{{ mood_glosses | tojson }}</script>
 <script id="glosses" type="application/json">{{ glosses | tojson }}</script>
 <script id="families" type="application/json">{{ families | tojson }}</script>
 {% endblock %}
