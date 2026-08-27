@@ -67,7 +67,7 @@ function provenanceBanner(verb) {
   return el;
 }
 
-function formCell(entry, markSource = true, derivedLabel = null) {
+function formCell(entry, markSource = true, derivedLabel = null, knownWrong = false) {
   const cell = document.createElement("div");
   cell.className = "cform";
 
@@ -85,6 +85,29 @@ function formCell(entry, markSource = true, derivedLabel = null) {
   const word = document.createElement("span");
   word.className = "cword";
   word.textContent = entry.form;
+
+  // A form the API's own note names as wrong. Marked ON THE WORD, because a
+  // caveat in a paragraph above the table loses to the word inside it -- the
+  // visitor reads the form, not the prose.
+  //
+  // Symbol AND colour, never colour alone: a red word is invisible to a
+  // red-green colourblind reader, and this is the one place the page says
+  // "do not trust this".
+  if (knownWrong) {
+    word.classList.add("is-wrong");
+    const flag = document.createElement("abbr");
+    flag.className = "wrong-flag";
+    flag.textContent = "*";
+    flag.title = C_LABELS.known_wrong;
+    word.appendChild(flag);
+    cell.appendChild(word);
+    const why = document.createElement("small");
+    why.className = "wrong-why";
+    why.textContent = C_LABELS.known_wrong;
+    cell.appendChild(why);
+    return cell;
+  }
+
   cell.appendChild(word);
 
   // The whole conditional is derived by LexicRo rather than served by the
@@ -104,13 +127,13 @@ function formCell(entry, markSource = true, derivedLabel = null) {
   return cell;
 }
 
-function personRow(entry, markSource = true, derivedLabel = null) {
+function personRow(entry, markSource = true, derivedLabel = null, knownWrong = false) {
   const row = document.createElement("div");
   row.className = "crow";
   const pronoun = document.createElement("span");
   pronoun.className = "cpronoun";
   pronoun.textContent = entry.pronoun || "";
-  row.append(pronoun, formCell(entry, markSource, derivedLabel));
+  row.append(pronoun, formCell(entry, markSource, derivedLabel, knownWrong));
   return row;
 }
 
@@ -126,7 +149,7 @@ function personRow(entry, markSource = true, derivedLabel = null) {
  * anything DIFFERENT: nothing is invented, and no form is presented as
  * existing when it does not.
  */
-function tenseBlock(name, entries, mood) {
+function tenseBlock(name, entries, mood, wrongPronouns = null) {
   const block = document.createElement("div");
   block.className = "ctense";
   const heading = document.createElement("h4");
@@ -173,7 +196,8 @@ function tenseBlock(name, entries, mood) {
   }
 
   for (const entry of present) {
-    block.appendChild(personRow(entry, !allDerived, derivedLabel));
+    const wrong = !!wrongPronouns && wrongPronouns.has(entry.pronoun);
+    block.appendChild(personRow(entry, !allDerived, derivedLabel, wrong));
   }
   return block;
 }
@@ -185,7 +209,38 @@ function noteEl(note) {
   return el;
 }
 
-function moodBlock(name, tenses, scopedNotes) {
+/** Which pronouns' forms this response says are wrong, per mood and tense.
+ *
+ * Read from the API, never guessed. The `imperative_known_errors` note
+ * carries a `verbs` field naming the lemmas it is about, precisely so a
+ * caller can mark the form instead of hoping a visitor reads the paragraph
+ * above the table.
+ *
+ * Deliberately NOT computed from the data. The defect's signature -- a 2sg
+ * imperative equal to the 3sg present -- is equally true of `a cânta` and
+ * `a găsi`, which are correct, so deriving the set would put a red mark on
+ * regular verbs. And it is not hardcoded here either: a copy of the list in
+ * this repo is a second place to remember, and it would go stale silently the
+ * day upstream fixes it. The API owns the disclosure; this renders it.
+ *
+ * Returns a map of "mood/tense" -> Set of pronouns.
+ */
+function knownWrongForms(data) {
+  const wrong = new Map();
+  const lemma = (data.verb || {}).infinitive;
+  if (!lemma) return wrong;
+
+  for (const note of data.notes || []) {
+    if (note.code !== "imperative_known_errors") continue;
+    if (!Array.isArray(note.verbs) || !note.verbs.includes(lemma)) continue;
+    // The defect is the affirmative second person singular. The negative is
+    // composed from the infinitive and is correct.
+    wrong.set("imperativ/imperativ", new Set(["tu"]));
+  }
+  return wrong;
+}
+
+function moodBlock(name, tenses, scopedNotes, wrongForms) {
   const details = document.createElement("details");
   details.className = "cmood";
   details.open = OPEN_BY_DEFAULT.has(name);
@@ -217,7 +272,9 @@ function moodBlock(name, tenses, scopedNotes) {
   const gridOf = (names) => {
     const grid = document.createElement("div");
     grid.className = "ctenses";
-    for (const n of names) grid.appendChild(tenseBlock(n, tenses[n], name));
+    for (const n of names) {
+      grid.appendChild(tenseBlock(n, tenses[n], name, wrongForms.get(name + "/" + n)));
+    }
     return grid;
   };
 
@@ -260,8 +317,11 @@ function render(data) {
   target.appendChild(provenanceBanner(data.verb || {}));
 
   const moods = data.moods || {};
+  const wrongForms = knownWrongForms(data);
   for (const mood of orderedMoods(moods)) {
-    target.appendChild(moodBlock(mood, moods[mood], notes.filter((n) => n.scope === mood)));
+    target.appendChild(
+      moodBlock(mood, moods[mood], notes.filter((n) => n.scope === mood), wrongForms)
+    );
   }
 
   // The general disclosure. Always rendered, never suppressed: an API consumer

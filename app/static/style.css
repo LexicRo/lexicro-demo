@@ -24,6 +24,7 @@
   --orb-a:       rgba(240, 166, 60, 0.20);
   --orb-b:       rgba(53, 196, 180, 0.17);
   --focus-ring:  #2f6df0;
+  --wrong:       #b3261e;   /* known-wrong forms only */
   --on-accent:   #ffffff;   /* text ON the action colour */
   --action:      #14625a;   /* calls to action only */
 
@@ -53,6 +54,7 @@
     --orb-a:      rgba(240, 166, 60, 0.22);
     --orb-b:      rgba(53, 196, 180, 0.2);
     --focus-ring: #79a8ff;
+    --wrong:      #ff8a80;
     --on-accent:  #08120f;
     --action:     #3fd3c2;
 
@@ -77,6 +79,7 @@
   --orb-a:      rgba(240, 166, 60, 0.22);
   --orb-b:      rgba(53, 196, 180, 0.2);
   --focus-ring: #79a8ff;
+  --wrong:      #ff8a80;
   --on-accent:  #08120f;
   --action:     #3fd3c2;
 
@@ -666,3 +669,21 @@ footer a { color: var(--ink); text-decoration-color: var(--hairline); }
 /* Said once on the card when every form in it shares a source. */
 .ctenses .ctense h4 { display: flex; justify-content: space-between; gap: 0.5rem; align-items: baseline; }
 .cderived-all { font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+/* A form the API's own note names as wrong. Symbol AND colour, never colour
+   alone -- a red word is invisible to a red-green colourblind reader, and
+   this is the one place the page says "do not trust this". */
+.cword.is-wrong {
+  color: var(--wrong);
+  text-decoration: underline wavy var(--wrong);
+  text-underline-offset: 0.25em;
+}
+.wrong-flag {
+  color: var(--wrong);
+  font-weight: 700;
+  margin-left: 0.15em;
+  text-decoration: none;
+  cursor: help;
+  border: 0;
+}
+.wrong-why { color: var(--wrong); opacity: 0.85; }
