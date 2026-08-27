@@ -1,6 +1,8 @@
 import asyncio
 import logging
 
+import httpx
+
 from fastapi.testclient import TestClient
 
 from app.session import COOKIE_NAME, parse
@@ -698,3 +700,83 @@ def test_static_assets_are_revalidated_not_heuristically_cached(client):
     assert r.status_code == 200
     assert r.headers.get("cache-control") == "no-cache"
     assert r.headers.get("etag"), "the ETag is what makes revalidation cheap"
+
+
+def test_conjugate_requires_a_session(client):
+    r = client.post("/api/conjugate", json={"verb": "merge"})
+    assert r.status_code == 403
+
+
+def test_conjugate_returns_the_upstream_shape(client):
+    client.get("/")
+    r = client.post("/api/conjugate", json={"verb": "merge"})
+    assert r.status_code == 200
+    assert r.json()["verb"]["provenance"] == "template"
+
+
+def test_conjugate_rejects_a_mismatched_origin(client):
+    client.get("/")
+    r = client.post("/api/conjugate", json={"verb": "merge"},
+                    headers={"Origin": "https://evil.example"})
+    assert r.status_code == 403
+
+
+def test_conjugate_rejects_an_overlong_verb(client):
+    client.get("/")
+    r = client.post("/api/conjugate", json={"verb": "a" * 65})
+    assert r.status_code == 400
+
+
+def test_conjugate_rejects_a_blank_verb(client):
+    client.get("/")
+    r = client.post("/api/conjugate", json={"verb": "   "})
+    assert r.status_code == 400
+
+
+def test_conjugate_maps_an_unknown_verb_to_404(client, app):
+    """not_a_verb must reach the visitor as 404, not as a 502 outage."""
+    def handler(request):
+        return httpx.Response(404, json={"detail": "nope"})
+
+    app.state.http = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    client.get("/")
+    r = client.post("/api/conjugate", json={"verb": "asdfgh"})
+    assert r.status_code == 404
+    # Not enough on its own: FastAPI answers an ABSENT route with 404 too, so
+    # a status-only assertion passes before the route exists. The body is what
+    # distinguishes our copy from the framework's {"detail": "Not Found"}.
+    assert "error" in r.json()
+
+
+def test_conjugate_and_analyse_share_one_budget(client):
+    """A decision, not an accident: one visitor, one budget. session_hour is
+    20, so twenty conjugations must exhaust the analyser too."""
+    client.get("/")
+    for _ in range(20):
+        assert client.post("/api/conjugate", json={"verb": "merge"}).status_code == 200
+    spent = client.post("/api/analyze", json={"text": "O propozitie noua."})
+    assert spent.status_code == 429
+
+
+def test_conjugate_never_contains_the_api_key(client):
+    client.get("/")
+    responses = [
+        client.post("/api/conjugate", json={"verb": "merge"}),      # 200
+        client.post("/api/conjugate", json={"verb": "a" * 65}),     # 400
+    ]
+    assert [r.status_code for r in responses] == [200, 400]
+    for r in responses:
+        assert SETTINGS.api_key not in r.text
+        for value in r.headers.values():
+            assert SETTINGS.api_key not in value
+
+
+def test_index_renders_both_tabs_with_analyse_selected(client):
+    """Conjugate is never the landing state -- ADR-0025 section 4's
+    subordination is expressed in placement, and this is the assertion that
+    stops a later refactor quietly promoting it."""
+    body = client.get("/").text
+    assert 'id="pane-analyse"' in body
+    assert 'id="pane-conjugate"' in body
+    assert 'data-pane="analyse" aria-selected="true"' in body
+    assert 'data-pane="conjugate" aria-selected="false"' in body

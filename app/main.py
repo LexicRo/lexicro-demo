@@ -44,7 +44,7 @@ from .heroes import Heroes, load, lookup
 from .session import COOKIE_NAME, issue, normalise_lang, normalise_theme, parse
 from .strings import FEATURE_FAMILY, GLOSSES, STRINGS, t
 from .throttle import Throttle
-from .upstream import UpstreamError, analyze, info
+from .upstream import UpstreamError, analyze, conjugate, info
 
 BASE_DIR = Path(__file__).resolve().parent
 FIXTURE_PATH = BASE_DIR.parent / "fixtures" / "heroes.json"
@@ -57,6 +57,7 @@ ERROR_STATUS = {
     "quota": 429,
     "timeout": 504,
     "unavailable": 502,
+    "not_a_verb": 404,
 }
 
 logger = logging.getLogger("lexicro.demo")
@@ -66,6 +67,13 @@ logger = logging.getLogger("lexicro.demo")
 # at most one upstream call (and one upstream DB hit) per window, regardless
 # of hit rate.
 HEALTH_CACHE_TTL_S = 300.0
+
+# A verb is not a paragraph. settings.max_chars is sized for a sentence to
+# analyse, and reusing it here would accept a 500-character "verb" and spend an
+# upstream call proving it is not one. Deliberately a module constant rather
+# than a Settings field: it is not meaningfully operator-tunable, and an env
+# var would imply it is.
+MAX_VERB_CHARS = 64
 
 
 def _log(event: str, **fields) -> None:
@@ -313,6 +321,55 @@ def create_app(
                 if exc.kind == "bad_request":
                     kind = "bad_input"
                 elif exc.kind in ("quota", "timeout"):
+                    kind = exc.kind
+                else:
+                    kind = "unavailable"
+                return _error(lang, kind)
+
+    @app.post("/api/conjugate")
+    async def api_conjugate(request: Request):
+        """The subordinate tab's endpoint. The order of checks below is the
+        same as api_analyze's and is load-bearing for the same reasons.
+
+        The ONE deliberate difference: there is no hero-cache step. The
+        conjugate tab pre-bakes nothing, so it can never serve a form the API
+        has stopped serving -- which matters because a table cached before the
+        verbecc pin moved would still be showing non-words today.
+        """
+        sid, lang = _session_lang(request)
+
+        if sid is None:
+            return _error("en", "no_session")
+
+        if _is_cross_site(request):
+            return _error(lang, "no_session")
+
+        try:
+            body = await request.json()
+            verb = body["verb"]
+            if not isinstance(verb, str) or not verb.strip():
+                raise ValueError
+        except Exception:
+            return _error(lang, "bad_input")
+
+        verb = verb.strip()
+        if len(verb) > MAX_VERB_CHARS:
+            return _error(lang, "too_long")
+
+        ip = client_ip(request, settings.trust_proxy)
+        refused = app.state.throttle.try_acquire(sid, ip)
+        if refused:
+            _log("refused", sid=sid, ip=ip, bound=refused)
+            return _error(lang, "throttled")
+
+        async with app.state.semaphore:
+            try:
+                _log("upstream", sid=sid, ip=ip)
+                return JSONResponse(await conjugate(app.state.http, settings, verb))
+            except UpstreamError as exc:
+                if exc.kind == "bad_request":
+                    kind = "bad_input"
+                elif exc.kind in ("quota", "timeout", "not_a_verb"):
                     kind = exc.kind
                 else:
                     kind = "unavailable"

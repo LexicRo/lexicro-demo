@@ -24,6 +24,22 @@ UPSTREAM_PAYLOAD = {
 }
 
 
+CONJUGATE_PAYLOAD = {
+    "input": "merge",
+    "verb": {"infinitive": "merge", "provenance": "template"},
+    "notes": [
+        {"scope": "all", "code": "upstream_unverified", "message": "general note"},
+        {"scope": "imperativ", "code": "imperative_known_errors", "message": "imperative note"},
+    ],
+    "moods": {
+        "indicativ": {"prezent": [
+            {"form": "merg", "pronoun": "eu",
+             "feats": {"Person": "1", "Number": "Sing"}, "source": "verbecc"},
+        ]},
+    },
+}
+
+
 @pytest.fixture
 def fixture_file(tmp_path):
     data = {
@@ -50,6 +66,8 @@ class Upstream:
         self.calls += 1
         if request.url.path == "/analyze/info":
             return httpx.Response(200, json={"model_version": "phase2-baseline-0.1"})
+        if request.url.path.startswith("/conjugate/"):
+            return httpx.Response(200, json=CONJUGATE_PAYLOAD)
         return httpx.Response(200, json=UPSTREAM_PAYLOAD)
 
 
