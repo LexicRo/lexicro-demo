@@ -51,6 +51,20 @@ STRINGS: dict[str, dict[str, str]] = {
         "theme_dark": "Dark",
         "lang_en": "English",
         "lang_ro": "Română",
+        "tabs_label": "Try it yourself",
+        "tab_analyse": "Analyse",
+        "tab_conjugate": "Conjugate",
+        "conjugate_heading": "Conjugate a verb",
+        "conjugate_placeholder": "merge, a face, cânta…",
+        "conjugate_submit": "Conjugate",
+        "conjugate_hint": "One verb at a time",
+        "conjugate_lede": "Also on the API: every mood and tense for any Romanian verb — and an honest answer about where each form came from.",
+        "prov_template": "Found in the dictionary.",
+        "prov_predicted": "This verb is not in the dictionary. The forms below are inferred from its ending, not looked up.",
+        "no_such_form": "no such form",
+        "derived_label": "derived by LexicRo",
+        "notes_heading": "About these forms",
+        "err_not_a_verb": "That does not look like a Romanian verb. Try an infinitive, like a merge."
     },
     "ro": {
         "title": "LexicRo — analiză morfologică pentru limba română",
@@ -88,6 +102,20 @@ STRINGS: dict[str, dict[str, str]] = {
         "theme_dark": "Întunecat",
         "lang_en": "English",
         "lang_ro": "Română",
+        "tabs_label": "Încearcă",
+        "tab_analyse": "Analizează",
+        "tab_conjugate": "Conjugă",
+        "conjugate_heading": "Conjugă un verb",
+        "conjugate_placeholder": "merge, a face, cânta…",
+        "conjugate_submit": "Conjugă",
+        "conjugate_hint": "Un singur verb",
+        "conjugate_lede": "Tot prin API: toate modurile și timpurile pentru orice verb românesc — și un răspuns cinstit despre proveniența fiecărei forme.",
+        "prov_template": "Găsit în dicționar.",
+        "prov_predicted": "Verbul nu se află în dicționar. Formele de mai jos sunt deduse după terminație, nu căutate.",
+        "no_such_form": "formă inexistentă",
+        "derived_label": "derivat de LexicRo",
+        "notes_heading": "Despre aceste forme",
+        "err_not_a_verb": "Nu pare a fi un verb românesc. Încearcă un infinitiv, de exemplu a merge."
     },
 }
 
@@ -174,4 +202,35 @@ FEATURE_FAMILY: dict[str, str] = {
     "PronType": "lexical", "AdpType": "lexical", "NumType": "lexical",
     "NumForm": "lexical", "Poss": "lexical", "Reflex": "lexical",
     "Strength": "lexical", "Polarity": "lexical", "Variant": "lexical",
+}
+
+
+# Mood names stay Romanian in the UI -- they are the real names, and the demo
+# is about Romanian. The gloss is how an English reader gets in, the same
+# bargain GLOSSES already strikes for UD feature values. Tenses are NOT
+# glossed: their names read transparently next to a glossed mood, and a table
+# of nine indicative tenses in two languages is a maintenance burden for very
+# little added meaning.
+#
+# The Romanian glosses are empty on purpose -- glossing `indicativ` as
+# "indicativ" is noise. conjugate.js renders a gloss only when it is truthy.
+MOOD_GLOSSES: dict[str, dict[str, str]] = {
+    "en": {
+        "indicativ": "indicative",
+        "conjunctiv": "subjunctive",
+        "condițional": "conditional",
+        "imperativ": "imperative",
+        "infinitiv": "infinitive",
+        "gerunziu": "gerund",
+        "participiu": "participle",
+    },
+    "ro": {
+        "indicativ": "",
+        "conjunctiv": "",
+        "condițional": "",
+        "imperativ": "",
+        "infinitiv": "",
+        "gerunziu": "",
+        "participiu": "",
+    },
 }
