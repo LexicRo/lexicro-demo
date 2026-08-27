@@ -6,6 +6,8 @@ the request object -- headers included -- so an unhandled traceback here would
 put the key in a response. Every failure is caught and replaced with a bare
 `kind`, and UpstreamError deliberately carries no message.
 """
+from urllib.parse import quote
+
 import httpx
 
 from .config import Settings
@@ -91,3 +93,50 @@ async def info(client: httpx.AsyncClient, settings: Settings) -> dict:
         pass
 
     _raise("unavailable")
+
+
+async def conjugate(client: httpx.AsyncClient, settings: Settings, verb: str) -> dict:
+    """One verb's conjugation. GET, unlike analyze's POST -- the API takes the
+    verb in the path.
+
+    `safe=""` on the quote is load-bearing twice over. It percent-encodes the
+    space in `a merge` and the diacritics in `a minți`, which the path
+    needs; and it encodes `/` as well, so a verb can never walk out of the
+    `/conjugate/` prefix into another endpoint.
+    """
+    error_kind = None
+    try:
+        response = await client.get(
+            f"{settings.api_base}/conjugate/{quote(verb, safe='')}",
+            headers=_headers(settings),
+            timeout=settings.upstream_timeout_s,
+        )
+    except (httpx.TimeoutException,):
+        error_kind = "timeout"
+    except httpx.HTTPError:
+        error_kind = "unavailable"
+
+    if error_kind:
+        _raise(error_kind)
+
+    if response.status_code == 429:
+        raise UpstreamError("quota")
+    # A 404 means the caller typed something that is not a Romanian verb. That
+    # is a caller-caused rejection, not an outage, and must not be folded into
+    # "unavailable" -- the same distinction analyze() draws for 400.
+    if response.status_code == 404:
+        raise UpstreamError("not_a_verb")
+    if response.status_code == 400:
+        raise UpstreamError("bad_request")
+    if response.status_code != 200:
+        # 401/403 mean OUR key is wrong. That is never the visitor's problem.
+        raise UpstreamError("unavailable")
+
+    error_kind = None
+    try:
+        return response.json()
+    except ValueError:
+        error_kind = "unavailable"
+
+    if error_kind:
+        _raise(error_kind)

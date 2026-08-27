@@ -1,7 +1,7 @@
 import httpx
 import pytest
 from app.config import Settings
-from app.upstream import UpstreamError, analyze, info
+from app.upstream import UpstreamError, analyze, conjugate, info
 
 SETTINGS = Settings(
     api_base="https://api.test",
@@ -125,3 +125,95 @@ async def test_info_sends_the_api_key_header():
         await info(c, SETTINGS)
 
     assert seen["headers"]["X-API-Key"] == SETTINGS.api_key
+
+
+async def test_conjugate_percent_encodes_diacritics_and_spaces():
+    """`a merge` has a space; real Romanian input has diacritics. Both must
+    survive into the path."""
+    seen = {}
+
+    def handler(request):
+        seen["url"] = str(request.url)
+        return httpx.Response(200, json={"verb": {}})
+
+    async with client_returning(handler) as c:
+        await conjugate(c, SETTINGS, "a minți")
+
+    assert seen["url"] == "https://api.test/conjugate/a%20min%C8%9Bi"
+
+
+async def test_conjugate_will_not_let_a_verb_escape_the_path():
+    """safe="" encodes "/" too, so a verb cannot walk out of the /conjugate/
+    prefix into another endpoint."""
+    seen = {}
+
+    def handler(request):
+        seen["url"] = str(request.url)
+        return httpx.Response(200, json={"verb": {}})
+
+    async with client_returning(handler) as c:
+        await conjugate(c, SETTINGS, "../analyze")
+
+    assert "/conjugate/..%2Fanalyze" in seen["url"]
+
+
+async def test_conjugate_maps_404_to_not_a_verb():
+    """A 404 is the caller typing nonsense, not an outage, and must not be
+    reported as one -- the same distinction analyze() draws for 400."""
+    def handler(request):
+        return httpx.Response(404, json={"detail": "no such verb"})
+
+    async with client_returning(handler) as c:
+        with pytest.raises(UpstreamError) as exc:
+            await conjugate(c, SETTINGS, "asdfgh")
+
+    assert exc.value.kind == "not_a_verb"
+
+
+async def test_conjugate_maps_429_to_quota():
+    def handler(request):
+        return httpx.Response(429, json={"detail": "limit"})
+
+    async with client_returning(handler) as c:
+        with pytest.raises(UpstreamError) as exc:
+            await conjugate(c, SETTINGS, "merge")
+
+    assert exc.value.kind == "quota"
+
+
+async def test_conjugate_maps_500_to_unavailable():
+    def handler(request):
+        return httpx.Response(500, text="boom")
+
+    async with client_returning(handler) as c:
+        with pytest.raises(UpstreamError) as exc:
+            await conjugate(c, SETTINGS, "merge")
+
+    assert exc.value.kind == "unavailable"
+
+
+async def test_conjugate_error_never_carries_the_key():
+    """T-6. httpx exceptions carry the request object, headers included."""
+    def handler(request):
+        raise httpx.ConnectError("refused")
+
+    async with client_returning(handler) as c:
+        with pytest.raises(UpstreamError) as exc:
+            await conjugate(c, SETTINGS, "merge")
+
+    assert SETTINGS.api_key not in repr(exc.value)
+    assert exc.value.__cause__ is None
+    assert exc.value.__context__ is None
+
+
+async def test_conjugate_sends_the_key_as_a_header():
+    seen = {}
+
+    def handler(request):
+        seen["key"] = request.headers.get("X-API-Key")
+        return httpx.Response(200, json={"verb": {}})
+
+    async with client_returning(handler) as c:
+        await conjugate(c, SETTINGS, "merge")
+
+    assert seen["key"] == SETTINGS.api_key
