@@ -1,6 +1,11 @@
 # LexicRo Demo
 
-A small FastAPI application that demonstrates the LexicRo Romanian NLP API. The demo holds an API key server-side and proxies one endpoint to the LexicRo API.
+A small FastAPI application that demonstrates the LexicRo Romanian NLP API. The demo holds an API key server-side and proxies two endpoints to the LexicRo API.
+
+Two tabs: **Analyse**, which is the landing state, and a subordinate **Conjugate**
+tab. Conjugating a verb is always a live call — nothing is pre-baked, so the tab
+cannot serve a form the API has stopped serving. Both tabs share one request
+budget.
 
 ## Setup
 
