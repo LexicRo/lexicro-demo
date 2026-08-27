@@ -687,3 +687,17 @@ footer a { color: var(--ink); text-decoration-color: var(--hairline); }
   border: 0;
 }
 .wrong-why { color: var(--wrong); opacity: 0.85; }
+
+/* The lemma leads the provenance line: "which verb is this?" is the question
+   a reader has before "where did these forms come from?". */
+.clemma { font-weight: 700; }
+.prov-template .clemma { color: var(--ink); }
+
+/* Shown only when the verb conjugated is not the one that was typed. The
+   lookup folds diacritics, so `sari` finds `sări`; without this the page
+   showed a correct table for a verb the visitor never named. */
+.cresolved {
+  margin: -0.4rem 0 1rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}

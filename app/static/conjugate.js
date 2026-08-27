@@ -62,8 +62,54 @@ function provenanceBanner(verb) {
   const predicted = verb.provenance === "predicted";
   const el = document.createElement("p");
   el.className = "prov " + (predicted ? "prov-predicted" : "prov-template");
-  el.textContent = predicted ? C_LABELS.prov_predicted : C_LABELS.prov_template;
+
+  // The lemma leads, because "which verb is this?" is the question a reader
+  // has before "where did the forms come from?". Both messages are worded to
+  // follow it as a sentence in either language.
+  const lemma = document.createElement("strong");
+  lemma.className = "clemma";
+  lemma.textContent = infinitiveWithPrefix(verb.infinitive);
+
+  const message = document.createElement("span");
+  message.textContent = predicted ? C_LABELS.prov_predicted : C_LABELS.prov_template;
+
+  el.append(lemma, document.createTextNode(" "), message);
   if (predicted) el.setAttribute("role", "status");
+  return el;
+}
+
+/** Romanian cites an infinitive with its `a` particle, and the API returns it
+ *  without one. Not translated: `a` is the Romanian marker, not English or
+ *  Romanian UI copy. */
+function infinitiveWithPrefix(infinitive) {
+  return "a " + (infinitive || "");
+}
+
+/** Said out loud when the verb conjugated is not the one that was typed.
+ *
+ * The API's lookup folds diacritics, so `sari` finds the lemma `sări` the way
+ * `canta` finds `cânta` -- a real convenience for anyone without a Romanian
+ * keyboard. But the page previously showed a confident, correct table and
+ * never said WHICH verb it had decided on, so someone typing `sari` could
+ * reasonably conclude the infinitive is `a sari`. On a demo whose audience is
+ * partly learning the language, that teaches a wrong lemma by omission --
+ * which is worse than showing a wrong form, because nothing looks wrong.
+ *
+ * Compares case-insensitively and ignores a leading `a `, so citing the verb
+ * properly is not reported as a correction. Diacritics are NOT folded here:
+ * the difference they make is the entire point of the message.
+ */
+function resolvedNote(data) {
+  const typed = (data.input || "").trim().replace(/^a\s+/i, "");
+  const lemma = (data.verb || {}).infinitive || "";
+  if (!typed || !lemma) return null;
+  if (typed.toLocaleLowerCase("ro") === lemma.toLocaleLowerCase("ro")) return null;
+
+  const el = document.createElement("p");
+  el.className = "cresolved";
+  el.textContent = C_LABELS.resolved_note
+    .replace("{typed}", typed)
+    .replace("{lemma}", infinitiveWithPrefix(lemma));
   return el;
 }
 
@@ -315,6 +361,9 @@ function render(data) {
 
   const notes = data.notes || [];
   target.appendChild(provenanceBanner(data.verb || {}));
+
+  const resolved = resolvedNote(data);
+  if (resolved) target.appendChild(resolved);
 
   const moods = data.moods || {};
   const wrongForms = knownWrongForms(data);

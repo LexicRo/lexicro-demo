@@ -59,8 +59,8 @@ STRINGS: dict[str, dict[str, str]] = {
         "conjugate_submit": "Conjugate",
         "conjugate_hint": "One verb at a time",
         "conjugate_lede": "Also on the API: every mood and tense for any Romanian verb — and an honest answer about where each form came from.",
-        "prov_template": "Found in the dictionary.",
-        "prov_predicted": "This verb is not in the dictionary. The forms below are inferred from its ending, not looked up.",
+        "prov_template": "is in the dictionary.",
+        "prov_predicted": "is not in the dictionary. The forms below are inferred from its ending, not looked up.",
         "no_such_form": "no such form",
         "derived_label": "derived by LexicRo",
         "notes_heading": "About these forms",
@@ -69,6 +69,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "other_tenses": "Other tenses",
         "derived_rule_negative": "nu + infinitive",
         "known_wrong": "Known incorrect form — see the note above",
+        "resolved_note": "You typed “{typed}” — these are the forms of {lemma}.",
         "err_not_a_verb": "That does not look like a Romanian verb. Try an infinitive, like a merge."
     },
     "ro": {
@@ -115,8 +116,8 @@ STRINGS: dict[str, dict[str, str]] = {
         "conjugate_submit": "Conjugă",
         "conjugate_hint": "Un singur verb",
         "conjugate_lede": "Tot prin API: toate modurile și timpurile pentru orice verb românesc — și un răspuns cinstit despre proveniența fiecărei forme.",
-        "prov_template": "Găsit în dicționar.",
-        "prov_predicted": "Verbul nu se află în dicționar. Formele de mai jos sunt deduse după terminație, nu căutate.",
+        "prov_template": "este în dicționar.",
+        "prov_predicted": "nu se află în dicționar. Formele de mai jos sunt deduse după terminație, nu căutate.",
         "no_such_form": "formă inexistentă",
         "derived_label": "derivat de LexicRo",
         "notes_heading": "Despre aceste forme",
@@ -125,6 +126,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "other_tenses": "Alte timpuri",
         "derived_rule_negative": "nu + infinitiv",
         "known_wrong": "Formă greșită cunoscută — vezi nota de mai sus",
+        "resolved_note": "Ai scris „{typed}” — acestea sunt formele verbului {lemma}.",
         "err_not_a_verb": "Nu pare a fi un verb românesc. Încearcă un infinitiv, de exemplu a merge."
     },
 }
