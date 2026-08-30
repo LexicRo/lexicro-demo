@@ -44,6 +44,41 @@ function orderedMoods(moods) {
   return known.concat(rest);
 }
 
+/* The order tenses are shown in, for the same reason as MOOD_ORDER above.
+ * The API's sorted keys put `perfect` before `prezent` in `conjunctiv`, so the
+ * subjunctive card read past-then-present while `condițional` -- which LexicRo
+ * derives itself, and whose keys happen to sort the right way round -- read
+ * present-then-past. Two moods side by side, disagreeing about where a
+ * paradigm starts.
+ *
+ * This is the order a paradigm is taught in: present, then the past tenses by
+ * increasing distance, then future. Anything the API adds later that is not
+ * listed here still renders, after these, rather than vanishing. */
+const TENSE_ORDER = [
+  "prezent",
+  "imperfect",
+  "perfect-compus",
+  "perfect-simplu",
+  "mai-mult-ca-perfect",
+  "perfect",
+  "viitor-1",
+  "viitor-1-popular",
+  "viitor-2",
+  "viitor-2-popular",
+  "imperativ",
+  "negativ",
+  "afirmativ",
+  "gerunziu",
+  "participiu",
+];
+
+function orderedTenses(tenses) {
+  const names = Object.keys(tenses);
+  const known = TENSE_ORDER.filter((t) => names.includes(t));
+  const rest = names.filter((t) => !TENSE_ORDER.includes(t)).sort();
+  return known.concat(rest);
+}
+
 async function conjugateVerb(verb) {
   const response = await fetch("/api/conjugate", {
     method: "POST",
@@ -345,7 +380,7 @@ function moodBlock(name, tenses, scopedNotes, wrongForms, contradicting) {
     return grid;
   };
 
-  const names = Object.keys(tenses);
+  const names = orderedTenses(tenses);
 
   // A mood with more than a couple of tenses shows its present tense and puts
   // the rest one click away. In practice this fires only on `indicativ`, which
